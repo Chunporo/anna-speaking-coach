@@ -46,8 +46,8 @@ print(
         
 #         return (mel, text)
 
-dataset = LibriSpeech("test-clean")
-loader = torch.utils.data.DataLoader(dataset, batch_size=16)
+# dataset = LibriSpeech("test-clean")
+# loader = torch.utils.data.DataLoader(dataset, batch_size=16)
 # predict without timestamps for short-form transcription
 options = whisper.DecodingOptions(language="en", without_timestamps=True)
 
