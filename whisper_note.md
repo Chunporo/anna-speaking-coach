@@ -1,0 +1,1 @@
+whisper --model turbo --output_format json --output_dir scripts/ --language en
