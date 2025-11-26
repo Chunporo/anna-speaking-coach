@@ -1,10 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import { getErrorMessage } from '@/lib/errorHandler';
+
+declare global {
+  interface Window {
+    google: any;
+  }
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,6 +22,75 @@ export default function LoginPage() {
     password: '',
   });
   const [error, setError] = useState('');
+  const [googleLoaded, setGoogleLoaded] = useState(false);
+  const [googleClientId] = useState(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '');
+
+  const handleGoogleSignIn = useCallback(async (response: any) => {
+    setError('');
+    try {
+      const authResponse = await api.post('/api/auth/google', {
+        token: response.credential,
+      });
+      
+      setToken(authResponse.data.access_token);
+      const userResponse = await api.get('/api/auth/me');
+      setUser(userResponse.data);
+      router.push('/');
+    } catch (err: any) {
+      setError(getErrorMessage(err));
+    }
+  }, [setToken, setUser, router]);
+
+  useEffect(() => {
+    // Only load Google OAuth if client_id is configured
+    if (!googleClientId) {
+      console.warn('Google OAuth client ID not configured. Set NEXT_PUBLIC_GOOGLE_CLIENT_ID in .env.local');
+      return;
+    }
+
+    // Load Google Identity Services
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      if (window.google && googleClientId) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: googleClientId,
+            callback: handleGoogleSignIn,
+          });
+          setGoogleLoaded(true);
+          
+          // Render Google Sign-In button
+          const buttonContainer = document.getElementById('google-signin-button');
+          if (buttonContainer && window.google.accounts.id.renderButton) {
+            window.google.accounts.id.renderButton(buttonContainer, {
+              theme: 'outline',
+              size: 'large',
+              width: '100%',
+              text: 'signin_with',
+              locale: 'vi',
+            });
+          }
+        } catch (err) {
+          console.error('Error initializing Google OAuth:', err);
+          setError('Failed to initialize Google Sign-In. Please check your configuration.');
+        }
+      }
+    };
+    script.onerror = () => {
+      console.error('Failed to load Google Identity Services script');
+      setError('Failed to load Google Sign-In. Please check your internet connection.');
+    };
+    document.body.appendChild(script);
+
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, [handleGoogleSignIn, googleClientId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,6 +206,21 @@ export default function LoginPage() {
             {isLogin ? 'Đăng nhập' : 'Đăng ký'}
           </button>
         </form>
+
+        {googleClientId && (
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Hoặc</span>
+              </div>
+            </div>
+
+            <div id="google-signin-button" className="mt-4 w-full flex justify-center"></div>
+          </div>
+        )}
       </div>
     </div>
   );

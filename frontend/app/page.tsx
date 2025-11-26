@@ -31,6 +31,10 @@ export default function Home() {
       }
     };
     fetchProgress();
+    
+    // Refresh every 30 seconds to show updates
+    const interval = setInterval(fetchProgress, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const progressPercentage = (dailyProgress.practice_count / dailyProgress.target_count) * 100;
@@ -84,7 +88,7 @@ export default function Home() {
           </div>
 
           {/* Streak */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <a href="/streak" className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow block">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 bg-purple-500 rounded flex items-center justify-center">
                 <span className="text-white font-bold">O</span>
@@ -92,12 +96,13 @@ export default function Home() {
               <h2 className="text-lg font-semibold">Day(s) Streak</h2>
             </div>
             <p className="text-gray-600 mb-2">
-              Hoàn thành nhiệm vụ để bắt đầu streak nè 😊
+              Current Streak: <span className="font-bold text-purple-600">{streak.current_streak}</span> days
             </p>
             <p className="text-sm text-gray-500">
-              Đông đá streak: còn {streak.frozen_streak} (ngày)
+              Longest: {streak.longest_streak} days | Frozen: {streak.frozen_streak} days
             </p>
-          </div>
+            <p className="text-xs text-primary-600 mt-2">Click to view detailed streak calendar →</p>
+          </a>
 
           {/* Activity Calendar & Forecast */}
           <div className="bg-white rounded-lg shadow-sm p-6">

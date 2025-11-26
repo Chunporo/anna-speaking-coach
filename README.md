@@ -63,6 +63,7 @@ cp .env.example .env
 # Edit .env with your database credentials:
 # DATABASE_URL=postgresql://user:password@localhost:5432/ielts_speaking
 # SECRET_KEY=your-secret-key-change-in-production
+# GOOGLE_CLIENT_ID=your-google-client-id  # For Google OAuth
 ```
 
 5. Run the server:
@@ -90,6 +91,7 @@ yarn install
 3. Create `.env.local` file:
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-client-id  # For Google OAuth
 ```
 
 4. Run the development server:
@@ -122,6 +124,7 @@ See `backend/database/schema.sql` for the complete schema.
 ### Authentication
 - `POST /api/auth/register` - Register new user
 - `POST /api/auth/login` - Login
+- `POST /api/auth/google` - Login/Register with Google OAuth
 - `GET /api/auth/me` - Get current user
 
 ### Questions
@@ -179,9 +182,25 @@ INSERT INTO questions (part, topic, question_text) VALUES
 **Backend (.env):**
 - `DATABASE_URL` - PostgreSQL connection string
 - `SECRET_KEY` - Secret key for JWT tokens
+- `GOOGLE_CLIENT_ID` - Google OAuth Client ID (get from [Google Cloud Console](https://console.cloud.google.com/))
 
 **Frontend (.env.local):**
 - `NEXT_PUBLIC_API_URL` - Backend API URL
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` - Google OAuth Client ID (same as backend)
+
+## Google OAuth Setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Enable Google+ API
+4. Go to "Credentials" → "Create Credentials" → "OAuth client ID"
+5. Configure OAuth consent screen
+6. Create OAuth 2.0 Client ID for Web application
+7. Add authorized JavaScript origins: `http://localhost:3000` (for development)
+8. Add authorized redirect URIs: `http://localhost:3000` (for development)
+9. Copy the Client ID and add it to both backend `.env` and frontend `.env.local` files
+
+**Note:** For production, update the authorized origins and redirect URIs to your production domain.
 
 ## License
 

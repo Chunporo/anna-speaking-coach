@@ -5,11 +5,15 @@ CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255),  -- Optional for OAuth users
+    google_id VARCHAR(255) UNIQUE,  -- Google OAuth ID
     is_premium BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Index for google_id
+CREATE INDEX idx_users_google_id ON users(google_id);
 
 -- Questions table
 CREATE TABLE questions (

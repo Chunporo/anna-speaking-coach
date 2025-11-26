@@ -150,10 +150,48 @@ export default function PracticePage() {
                           placeholder="Nhập câu trả lời của bạn..."
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[100px]"
                         />
+                        <button
+                          onClick={async () => {
+                            try {
+                              await api.post('/api/practice/', {
+                                question_id: question.id,
+                                part: activeTab,
+                              });
+                              alert('Practice session created!');
+                            } catch (error) {
+                              console.error('Error creating practice session:', error);
+                              alert('Error creating practice session');
+                            }
+                          }}
+                          className="mt-2 px-4 py-1 bg-primary-100 text-primary-700 rounded text-sm hover:bg-primary-200 transition-colors"
+                        >
+                          Mark as practiced
+                        </button>
                       </div>
                     ))}
                   </div>
-                  <button className="mt-4 px-6 py-2 bg-pink-100 text-pink-700 rounded-lg font-medium hover:bg-pink-200 transition-colors flex items-center gap-2">
+                  <button
+                    onClick={async () => {
+                      try {
+                        // Create practice sessions for all questions in this topic
+                        await Promise.all(
+                          topicQuestions.map(q =>
+                            api.post('/api/practice/', {
+                              question_id: q.id,
+                              part: activeTab,
+                            })
+                          )
+                        );
+                        alert('Practice sessions created! Calendar updated.');
+                        // Refresh questions to show updated state
+                        fetchQuestions();
+                      } catch (error) {
+                        console.error('Error creating practice session:', error);
+                        alert('Error creating practice session');
+                      }
+                    }}
+                    className="mt-4 px-6 py-2 bg-pink-100 text-pink-700 rounded-lg font-medium hover:bg-pink-200 transition-colors flex items-center gap-2"
+                  >
                     <Mic size={18} />
                     Luyện topic này
                   </button>

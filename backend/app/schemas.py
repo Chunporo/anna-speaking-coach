@@ -142,6 +142,54 @@ class PartProgressResponse(BaseModel):
         from_attributes = True
 
 
+# Streak Analytics schemas
+class CalendarDayResponse(BaseModel):
+    date: date
+    has_activity: bool
+    practice_count: int
+
+
+class YearlyHeatmapResponse(BaseModel):
+    date: date
+    practice_count: int
+
+
+class StreakHistoryItem(BaseModel):
+    start_date: date
+    streak_length: int
+    is_active: bool
+
+
+class WeeklyPatternItem(BaseModel):
+    day_of_week: int  # 0=Sunday, 6=Saturday
+    day_name: str
+    total_practice: int
+
+
+class MonthlyProgressItem(BaseModel):
+    month: str
+    year: int
+    total_practice: int
+
+
+class TimeOfDayItem(BaseModel):
+    period: str  # Morning, Afternoon, Evening, Night
+    total_practice: int
+
+
+class StreakAnalyticsResponse(BaseModel):
+    current_streak: int
+    off_days: int
+    this_month: int
+    total_completions: int
+    calendar_days: List[CalendarDayResponse]
+    yearly_heatmap: List[YearlyHeatmapResponse]
+    streak_history: List[StreakHistoryItem]
+    weekly_pattern: List[WeeklyPatternItem]
+    monthly_progress: List[MonthlyProgressItem]
+    time_of_day: List[TimeOfDayItem]
+
+
 # Auth schemas
 class Token(BaseModel):
     access_token: str
@@ -150,4 +198,8 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+
+
+class GoogleTokenRequest(BaseModel):
+    token: str  # Google ID token
 
