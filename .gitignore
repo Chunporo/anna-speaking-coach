@@ -158,3 +158,5 @@ backend/.venv/
 backend/venv/
 backend/env/
 
+.cursor/
+__pycache__/

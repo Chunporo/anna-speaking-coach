@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, Mic, FileText, User, ChevronDown, Calendar, LogOut } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
@@ -45,7 +46,14 @@ const Sidebar = () => {
     <div className="w-64 bg-white min-h-screen border-r border-gray-200 flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-gray-200">
-        <h1 className="text-2xl font-bold text-primary-600">Anna</h1>
+        <Image
+          src="/logo.svg"
+          alt="Anna Logo"
+          width={120}
+          height={40}
+          className="h-auto"
+          priority
+        />
       </div>
 
       {/* Navigation */}

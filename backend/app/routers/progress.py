@@ -26,7 +26,7 @@ def get_daily_progress(
             user_id=current_user.id,
             date=today,
             practice_count=0,
-            target_count=25
+            target_count=10
         )
         db.add(daily_progress)
         db.commit()
