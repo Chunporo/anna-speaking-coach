@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models, schemas, auth
+from app.services import tts_service
 
 router = APIRouter()
 
@@ -38,6 +39,25 @@ def get_question(
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
     return question
+
+
+@router.get("/{question_id}/audio")
+def get_question_audio(
+    question_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Generate or retrieve TTS audio for a question
+    """
+    question = db.query(models.Question).filter(models.Question.id == question_id).first()
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+    
+    try:
+        audio_url = tts_service.get_tts_audio_url(question.question_text, question_id)
+        return {"audio_url": audio_url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate audio: {str(e)}")
 
 
 @router.get("/user-questions", response_model=List[schemas.UserQuestionResponse])

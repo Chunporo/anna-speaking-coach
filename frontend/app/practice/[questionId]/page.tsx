@@ -114,7 +114,7 @@ export default function QuestionPracticePage() {
     setIsSpeaking(true);
     stopSpeaking(); // Stop any ongoing speech
     try {
-      await speakText(question.question_text);
+      await speakText(question.question_text, question.id);
     } catch (error) {
       console.error('Error speaking text:', error);
       setAudioError('Failed to play question audio');

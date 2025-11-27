@@ -45,15 +45,16 @@ const Sidebar = () => {
   return (
     <div className="w-64 bg-white min-h-screen border-r border-gray-200 flex flex-col">
       {/* Logo */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-4 border-b border-gray-200 flex items-center gap-2">
         <Image
           src="/logo.svg"
           alt="Anna Logo"
-          width={120}
-          height={40}
-          className="h-auto"
+          width={32}
+          height={32}
+          className="h-8 w-8"
           priority
         />
+        <span className="text-xl font-bold text-gray-800">Anna</span>
       </div>
 
       {/* Navigation */}
