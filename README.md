@@ -21,8 +21,8 @@
     <a href="#features"><img src="https://img.shields.io/badge/features-8+-purple" alt="features"/></a>
     <a href="#quick-start"><img src="https://img.shields.io/badge/quick_start-5_min-orange" alt="quick-start"/></a>
     <a href="#tech-stack"><img src="https://img.shields.io/badge/tech_stack-modern-blue" alt="tech-stack"/></a>
-    <a href="https://github.com/chunporo/english_speaking_test/issues"><img src="https://img.shields.io/github/issues/chunporo/english_speaking_test" alt="issues"/></a>
-    <a href="https://github.com/chunporo/english_speaking_test/stargazers"><img src="https://img.shields.io/github/stars/chunporo/english_speaking_test" alt="stars"/></a>
+    <a href="https://github.com/chunporo/anna_speaking_test/issues"><img src="https://img.shields.io/github/issues/chunporo/anna_speaking_test" alt="issues"/></a>
+    <a href="https://github.com/chunporo/anna_speaking_test/stargazers"><img src="https://img.shields.io/github/stars/chunporo/anna_speaking_test" alt="stars"/></a>
   </div>
 </div>
 

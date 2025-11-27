@@ -90,6 +90,24 @@ async def get_current_user(
     return user
 
 
+async def get_current_user_optional(
+    token: Optional[str] = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+) -> Optional[models.User]:
+    """Get current user if token is provided, otherwise return None"""
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            return None
+        user = get_user_by_username(db, username=username)
+        return user
+    except (JWTError, Exception):
+        return None
+
+
 async def verify_google_token(token: str) -> dict:
     """Verify Google ID token and return user info."""
     GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")

@@ -176,16 +176,24 @@ async def analyze_audio(
     
     audio_url = f"/uploads/audio/{filename}"
     
-    # Transcribe audio using Whisper
+    # Transcribe audio using Google Cloud Speech-to-Text with Whisper fallback
+    from app.services.google_speech_service import transcribe_with_fallback
     transcription = ""
+    transcription_method = "unknown"
     try:
-        transcription = whisper_service.transcribe_audio(file_path)
-        if not transcription:
-            raise Exception("Whisper returned empty transcription")
+        transcription, transcription_method = transcribe_with_fallback(
+            file_path,
+            language_code="en-US",
+            use_google=True  # Try Google first, fallback to Whisper
+        )
+        # Add method info to transcription for display
+        method_display = "Google Cloud Speech-to-Text" if transcription_method == "google" else "Whisper (Local)"
+        logging.info(f"Transcription completed using: {method_display}")
     except Exception as e:
         # Log error but continue - we'll use placeholder
-        logging.error(f"Whisper transcription error: {str(e)}")
+        logging.error(f"Transcription error: {str(e)}")
         transcription = f"[Transcription error: {str(e)}. Please check that 'mamba activate whisper' works and Whisper is installed.]"
+        transcription_method = "error"
     
     # Simulate scores (in production, these would come from AI analysis)
     fluency_score = Decimal(str(round(random.uniform(5.5, 7.5), 2)))

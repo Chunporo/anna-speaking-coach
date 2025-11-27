@@ -1,0 +1,13 @@
+# Cursor ignore file
+node_modules/
+.next/
+*.log
+.env
+.DS_Store
+*.csv
+*.wav
+*.mp3
+.vscode/
+dist/
+build/
+coverage/

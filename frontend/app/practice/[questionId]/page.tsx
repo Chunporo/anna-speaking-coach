@@ -480,8 +480,18 @@ export default function QuestionPracticePage() {
 
               {lastSubmission.transcription && (
                 <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                  <div className="text-sm font-semibold text-gray-700 mb-2">Bản ghi chép:</div>
-                  <div className="text-gray-600">{lastSubmission.transcription}</div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-sm font-semibold text-gray-700">Bản ghi chép:</div>
+                    {/* Transcription method indicator */}
+                    <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 font-medium">
+                      {lastSubmission.transcription.includes('Google Cloud') ? '🔵 Google' : 
+                       lastSubmission.transcription.includes('Whisper') ? '🟢 Whisper' : 
+                       '🎤 Transcription'}
+                    </span>
+                  </div>
+                  <div className="text-gray-600">
+                    {lastSubmission.transcription}
+                  </div>
                 </div>
               )}
 
