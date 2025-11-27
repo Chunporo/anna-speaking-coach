@@ -1,17 +1,63 @@
-# IELTS Speaking Practice Platform
+<div align="center">
+  <img src="assets/banner.jpeg" alt="IELTS Speaking Practice Platform Banner" width="100%"/>
+</div>
 
-A full-stack web application for IELTS speaking practice, built with FastAPI (backend) and Next.js with Tailwind CSS (frontend).
+<div align="center">
+  <h1>🎤 IELTS Speaking Practice Platform</h1>
+  <p>A comprehensive full-stack web application for IELTS speaking practice with AI-powered feedback</p>
+  
+  <div>
+    <a href="https://github.com/chunporo/english_speaking_test/blob/master/LICENSE"><img height="20" src="https://img.shields.io/badge/license-MIT-blue" alt="license"/></a>
+    <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-0.104.1-009688?logo=fastapi&logoColor=white" alt="FastAPI"/></a>
+    <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-14.0.4-black?logo=next.js&logoColor=white" alt="Next.js"/></a>
+    <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/PostgreSQL-15+-316192?logo=postgresql&logoColor=white" alt="PostgreSQL"/></a>
+    <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript&logoColor=white" alt="TypeScript"/></a>
+    <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind_CSS-3.3-38bdf8?logo=tailwind-css&logoColor=white" alt="Tailwind CSS"/></a>
+    <a href="https://openai.com/research/whisper"><img src="https://img.shields.io/badge/Whisper-AI_Transcription-10a37f?logo=openai&logoColor=white" alt="Whisper"/></a>
+    <a href="https://developer.puter.com/tutorials/free-unlimited-text-to-speech-api/"><img src="https://img.shields.io/badge/TTS-Puter.js-green" alt="TTS"/></a>
+  </div>
+  
+  <div>
+    <a href="#features"><img src="https://img.shields.io/badge/features-8+-purple" alt="features"/></a>
+    <a href="#quick-start"><img src="https://img.shields.io/badge/quick_start-5_min-orange" alt="quick-start"/></a>
+    <a href="#tech-stack"><img src="https://img.shields.io/badge/tech_stack-modern-blue" alt="tech-stack"/></a>
+    <a href="https://github.com/chunporo/english_speaking_test/issues"><img src="https://img.shields.io/github/issues/chunporo/english_speaking_test" alt="issues"/></a>
+    <a href="https://github.com/chunporo/english_speaking_test/stargazers"><img src="https://img.shields.io/github/stars/chunporo/english_speaking_test" alt="stars"/></a>
+  </div>
+</div>
 
-## Features
+---
 
-- 🏠 **Homepage** with progress tracking, streaks, and activity calendar
-- 📝 **Practice by Question** - Practice questions from Part 1, 2, and 3
-- 🎯 **Mock Tests** - Take full or partial mock tests
-- 📊 **Progress Tracking** - Daily progress, streaks, and part-wise progress
-- 👤 **User Management** - Authentication and user accounts
-- 📈 **Activity Calendar** - Visual representation of practice activity
+## 📖 Overview
 
-## Project Structure
+A full-stack web application for IELTS speaking practice, built with **FastAPI** (backend) and **Next.js** with **Tailwind CSS** (frontend). Features AI-powered speech transcription using Whisper and text-to-speech for question audio playback.
+
+## ✨ Features
+
+- 🏠 **Homepage Dashboard** - Progress tracking, streaks, and GitHub-style activity calendar
+- 📝 **Practice by Question** - Practice questions from Part 1, 2, and 3 with instant feedback
+- 🎯 **Mock Tests** - Take full or partial mock tests simulating real IELTS exam conditions
+- 📊 **Progress Tracking** - Daily progress, streaks, and part-wise progress analytics
+- 👤 **User Management** - Secure authentication with Google OAuth support
+- 📈 **Activity Calendar** - Visual GitHub-style contribution graph showing practice history
+- 🎤 **AI-Powered Transcription** - Automatic speech-to-text using Whisper AI
+- 🔊 **Text-to-Speech** - Question audio playback using Puter.js TTS
+- 📱 **Responsive Design** - Beautiful UI built with Tailwind CSS
+- 🔄 **Real-time Updates** - Live progress tracking and streak management
+
+## 📋 Table of Contents
+
+- [Quick Start](#-quick-start)
+- [Project Structure](#-project-structure)
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [API Endpoints](#-api-endpoints)
+- [Database Schema](#-database-schema)
+- [Development](#-development)
+- [Google OAuth Setup](#-google-oauth-setup)
+- [License](#-license)
+
+## 📁 Project Structure
 
 ```
 english_speaking_test/
@@ -32,7 +78,7 @@ english_speaking_test/
 └── README.md
 ```
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Backend Setup
 
@@ -103,7 +149,7 @@ yarn dev
 
 Frontend will be available at http://localhost:3000
 
-## Database Schema
+## 🗄️ Database Schema
 
 The application uses PostgreSQL with the following main tables:
 
@@ -119,7 +165,7 @@ The application uses PostgreSQL with the following main tables:
 
 See `backend/database/schema.sql` for the complete schema.
 
-## API Endpoints
+## 🔌 API Endpoints
 
 ### Authentication
 - `POST /api/auth/register` - Register new user
@@ -149,7 +195,7 @@ See `backend/database/schema.sql` for the complete schema.
 - `GET /api/progress/activity-calendar` - Get activity calendar
 - `GET /api/progress/part-progress` - Get part-wise progress
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 ### Backend
 - **FastAPI** - Modern Python web framework
@@ -165,7 +211,7 @@ See `backend/database/schema.sql` for the complete schema.
 - **Axios** - HTTP client
 - **Zustand** - State management
 
-## Development
+## 💻 Development
 
 ### Adding Questions
 
@@ -188,7 +234,7 @@ INSERT INTO questions (part, topic, question_text) VALUES
 - `NEXT_PUBLIC_API_URL` - Backend API URL
 - `NEXT_PUBLIC_GOOGLE_CLIENT_ID` - Google OAuth Client ID (same as backend)
 
-## Google OAuth Setup
+## 🔐 Google OAuth Setup
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select an existing one
@@ -202,7 +248,14 @@ INSERT INTO questions (part, topic, question_text) VALUES
 
 **Note:** For production, update the authorized origins and redirect URIs to your production domain.
 
-## License
+## 📄 License
 
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+  <p>Made with ❤️ for IELTS learners</p>
+  <p>⭐ Star this repo if you find it helpful!</p>
+</div>
 
