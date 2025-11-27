@@ -29,6 +29,17 @@ def get_topics(part: Optional[int] = Query(None, ge=1, le=3), db: Session = Depe
     return [topic[0] for topic in query.all()]
 
 
+@router.get("/{question_id}", response_model=schemas.QuestionResponse)
+def get_question(
+    question_id: int,
+    db: Session = Depends(get_db)
+):
+    question = db.query(models.Question).filter(models.Question.id == question_id).first()
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+    return question
+
+
 @router.get("/user-questions", response_model=List[schemas.UserQuestionResponse])
 def get_user_questions(
     part: Optional[int] = Query(None, ge=1, le=3),

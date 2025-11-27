@@ -44,4 +44,4 @@ Link
 42 	👄 Voiced Consonant - /z/ - 'zero', 'music' and 'roses' - English Pronunciation Tips 	o1ZvmX80t7Q 	https://www.youtube.com/watch?v=o1ZvmX80t7Q
 43 	👄 Consonant - /l/ - 'light', 'valley' and 'feel' - English Pronunciation Tips 	CwWLgmMk0Z0 	https://www.youtube.com/watch?v=CwWLgmMk0Z0
 44 	👄 Voiceless consonant - /h/ - 'hot', 'whole' and 'ahead' - English Pronunciation Tips 	DM_gN6imoC8 	https://www.youtube.com/watch?v=DM_gN6imoC8
-45 	👄 Voiced consonant /g/ in 'get', 'giggle' and 'ghost' - English Pronunciation Tips 	9eAqj9EfeK0 	https://www.youtube.com/watch?v=9eAqj9EfeK0
+45 	👄 Voiced consonant /g/ in 'get', 'giggle' and 'ghost' - English Pronunciation Tips 	9eAqj9EfeK0 	https://www.youtube.com/watch?v=9eAqj9EfeKI II

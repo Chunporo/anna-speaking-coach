@@ -248,10 +248,13 @@ export default function Home() {
 
           {/* Additional Features */}
           <div className="flex gap-4">
-            <button className="flex-1 bg-blue-50 text-blue-700 px-6 py-4 rounded-lg font-medium hover:bg-blue-100 transition-colors flex items-center justify-center gap-2">
+            <a
+              href="/pronunciation"
+              className="flex-1 bg-blue-50 text-blue-700 px-6 py-4 rounded-lg font-medium hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
+            >
               <span className="text-xl font-bold">P</span>
               <span>Khóa học phát âm</span>
-            </button>
+            </a>
             <button className="flex-1 bg-green-50 text-green-700 px-6 py-4 rounded-lg font-medium hover:bg-green-100 transition-colors flex items-center justify-center gap-2">
               <span className="text-xl">✓</span>
               <span>Sổ từ vựng</span>
