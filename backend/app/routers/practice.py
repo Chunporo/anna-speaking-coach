@@ -6,12 +6,12 @@ from sqlalchemy import func, desc
 import os
 import uuid
 import shutil
-import random
 import logging
 from pathlib import Path
 from app.database import get_db
 from app import models, schemas, auth
 from app.services import whisper_service
+from app.services.gemini_feedback_service import get_ielts_feedback, format_feedback_text, IELTSFeedback
 from decimal import Decimal
 
 router = APIRouter()
@@ -195,18 +195,46 @@ async def analyze_audio(
         transcription = f"[Transcription error: {str(e)}. Please check that 'mamba activate whisper' works and Whisper is installed.]"
         transcription_method = "error"
     
-    # Simulate scores (in production, these would come from AI analysis)
-    fluency_score = Decimal(str(round(random.uniform(5.5, 7.5), 2)))
-    vocabulary_score = Decimal(str(round(random.uniform(5.5, 7.5), 2)))
-    grammar_score = Decimal(str(round(random.uniform(5.5, 7.5), 2)))
-    pronunciation_score = Decimal(str(round(random.uniform(5.5, 7.5), 2)))
+    # Get IELTS examiner feedback using Gemini AI
+    fluency_score = Decimal("5.0")
+    vocabulary_score = Decimal("5.0")
+    grammar_score = Decimal("5.0")
+    pronunciation_score = Decimal("5.0")
+    feedback = ""
     
-    feedback = """This is placeholder feedback. In production, AI would analyze:
-- Grammar mistakes and corrections
-- Vocabulary suggestions
-- Pronunciation tips
-- Fluency improvements
-- Overall recommendations"""
+    try:
+        # Get IELTS feedback from Gemini
+        ielts_feedback = await get_ielts_feedback(
+            transcription=transcription,
+            question=question.question_text,
+            part=part
+        )
+        
+        if ielts_feedback:
+            fluency_score = ielts_feedback.fluency_score
+            vocabulary_score = ielts_feedback.vocabulary_score
+            grammar_score = ielts_feedback.grammar_score
+            pronunciation_score = ielts_feedback.pronunciation_score
+            feedback = format_feedback_text(ielts_feedback)
+            logging.info(f"IELTS feedback generated - Overall band: {ielts_feedback.overall_band}")
+        else:
+            # Fallback if Gemini is unavailable
+            feedback = """⚠️ **AI Feedback Unavailable**
+
+The AI feedback service is currently unavailable. Please ensure:
+1. The GEMINI_API_KEY environment variable is set
+2. The google-generativeai package is installed
+
+Your transcription has been saved. You can try again later to get detailed IELTS feedback."""
+            logging.warning("Gemini feedback unavailable, using fallback")
+            
+    except Exception as e:
+        logging.error(f"Error getting IELTS feedback: {str(e)}")
+        feedback = f"""⚠️ **Feedback Generation Error**
+
+An error occurred while generating feedback: {str(e)}
+
+Your transcription has been saved. Please try again later."""
     
     # Create practice session
     db_session = models.PracticeSession(

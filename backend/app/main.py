@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.routers import auth, questions, practice, mock_test, progress, users, transcription
+from app.routers import auth, questions, practice, mock_test, progress, users, transcription, feedback
 import os
 
 app = FastAPI(title="IELTS Speaking Practice API", version="1.0.0")
@@ -27,6 +27,7 @@ app.include_router(practice.router, prefix="/api/practice", tags=["practice"])
 app.include_router(mock_test.router, prefix="/api/mock-test", tags=["mock-test"])
 app.include_router(progress.router, prefix="/api/progress", tags=["progress"])
 app.include_router(transcription.router, prefix="/api/transcription", tags=["transcription"])
+app.include_router(feedback.router, prefix="/api/feedback", tags=["feedback"])
 
 
 @app.get("/")
