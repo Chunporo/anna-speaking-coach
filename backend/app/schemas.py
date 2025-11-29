@@ -78,7 +78,50 @@ class PracticeSessionResponse(BaseModel):
     vocabulary_score: Optional[Decimal]
     grammar_score: Optional[Decimal]
     pronunciation_score: Optional[Decimal]
+    overall_band: Optional[Decimal]
     feedback: Optional[str]
+    feedback_strengths: Optional[str]  # JSON string
+    feedback_improvements: Optional[str]  # JSON string
+    feedback_corrections: Optional[str]  # JSON string
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class FeedbackHistoryItem(BaseModel):
+    """Condensed feedback item for history list"""
+    id: int
+    question_id: Optional[int]
+    part: int
+    overall_band: Optional[Decimal]
+    fluency_score: Optional[Decimal]
+    vocabulary_score: Optional[Decimal]
+    grammar_score: Optional[Decimal]
+    pronunciation_score: Optional[Decimal]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class FeedbackDetailResponse(BaseModel):
+    """Detailed feedback response for review"""
+    id: int
+    question_id: Optional[int]
+    question_text: Optional[str]
+    part: int
+    transcription: Optional[str]
+    audio_url: Optional[str]
+    overall_band: Optional[Decimal]
+    fluency_score: Optional[Decimal]
+    vocabulary_score: Optional[Decimal]
+    grammar_score: Optional[Decimal]
+    pronunciation_score: Optional[Decimal]
+    feedback: Optional[str]
+    strengths: List[str]
+    improvements: List[str]
+    corrections: List[dict]
     created_at: datetime
 
     class Config:

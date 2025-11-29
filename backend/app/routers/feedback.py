@@ -94,13 +94,13 @@ async def analyze_transcription(
     if not request.transcription or len(request.transcription.strip()) < 10:
         raise HTTPException(
             status_code=400,
-            detail="Transcription is too short. Please provide a longer response."
+            detail="Bản ghi quá ngắn. Vui lòng cung cấp câu trả lời dài hơn."
         )
     
     if request.part not in [1, 2, 3]:
         raise HTTPException(
             status_code=400,
-            detail="Part must be 1, 2, or 3"
+            detail="Phần thi phải là 1, 2 hoặc 3"
         )
     
     try:
@@ -113,7 +113,7 @@ async def analyze_transcription(
         if not ielts_feedback:
             raise HTTPException(
                 status_code=503,
-                detail="Feedback service is unavailable. Please check GEMINI_API_KEY configuration."
+                detail="Dịch vụ phản hồi không khả dụng. Vui lòng kiểm tra cấu hình GEMINI_API_KEY."
             )
         
         return FeedbackResponse(
@@ -134,6 +134,6 @@ async def analyze_transcription(
         logger.error(f"Error analyzing transcription: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to generate feedback: {str(e)}"
+            detail=f"Không thể tạo phản hồi: {str(e)}"
         )
 

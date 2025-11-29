@@ -35,78 +35,79 @@ class IELTSFeedback:
     sample_corrections: list
 
 
-# IELTS Examiner Prompt Template
-IELTS_EXAMINER_PROMPT = """You are a certified IELTS Speaking Examiner with 15+ years of experience. Analyze the following speaking response and provide detailed, constructive feedback.
+# IELTS Examiner Prompt Template - Vietnamese Response
+IELTS_EXAMINER_PROMPT = """Bạn là một giám khảo IELTS Speaking được chứng nhận với hơn 15 năm kinh nghiệm. Phân tích câu trả lời speaking sau và cung cấp phản hồi chi tiết, mang tính xây dựng BẰNG TIẾNG VIỆT.
 
-## IELTS Speaking Test Context
-- **Part**: {part}
-- **Question/Topic**: {question}
-- **Candidate's Response**: 
+## Bối cảnh bài thi IELTS Speaking
+- **Phần thi**: {part}
+- **Câu hỏi/Chủ đề**: {question}
+- **Câu trả lời của thí sinh**: 
 "{transcription}"
 
-## Your Task
-Evaluate this response according to the official IELTS Speaking Band Descriptors. Provide scores and detailed feedback.
+## Nhiệm vụ của bạn
+Đánh giá câu trả lời này theo tiêu chí Band Descriptors chính thức của IELTS Speaking. Cung cấp điểm số và phản hồi chi tiết BẰNG TIẾNG VIỆT.
 
-## IELTS Band Descriptors Reference:
+## Tham khảo tiêu chí chấm điểm IELTS:
 
-### Fluency and Coherence (FC)
-- Band 9: Speaks fluently with only rare repetition or self-correction; hesitation is content-related
-- Band 7: Speaks at length without noticeable effort; may demonstrate language-related hesitation at times
-- Band 5: Can talk at length but with noticeable effort; some repetition and self-correction
+### Độ trôi chảy và Mạch lạc (Fluency and Coherence - FC)
+- Band 9: Nói trôi chảy chỉ có rất ít lần lặp lại hoặc tự sửa; ngập ngừng chỉ liên quan đến nội dung
+- Band 7: Nói dài mà không cần cố gắng đáng kể; có thể có ngập ngừng liên quan đến ngôn ngữ
+- Band 5: Có thể nói dài nhưng cần cố gắng đáng kể; có sự lặp lại và tự sửa
 
-### Lexical Resource (LR) 
-- Band 9: Uses vocabulary with full flexibility and precision; uses idiomatic language naturally
-- Band 7: Uses vocabulary resource flexibly; uses less common and idiomatic vocabulary
-- Band 5: Manages to talk about familiar topics but limited flexibility
+### Vốn từ vựng (Lexical Resource - LR)
+- Band 9: Sử dụng từ vựng linh hoạt và chính xác; dùng thành ngữ tự nhiên
+- Band 7: Sử dụng từ vựng linh hoạt; dùng từ ít phổ biến và thành ngữ
+- Band 5: Có thể nói về chủ đề quen thuộc nhưng linh hoạt hạn chế
 
-### Grammatical Range and Accuracy (GRA)
-- Band 9: Uses a full range of structures naturally and appropriately
-- Band 7: Uses a range of complex structures with some flexibility
-- Band 5: Produces basic sentence forms with reasonable accuracy
+### Phạm vi và Độ chính xác ngữ pháp (Grammatical Range and Accuracy - GRA)
+- Band 9: Sử dụng đa dạng cấu trúc một cách tự nhiên và phù hợp
+- Band 7: Sử dụng các cấu trúc phức tạp với một số linh hoạt
+- Band 5: Tạo câu cơ bản với độ chính xác hợp lý
 
-### Pronunciation (P)
-- Band 9: Uses a full range of pronunciation features with precision and subtlety
-- Band 7: Shows all positive features of Band 6 and some, but not all, positive features of Band 8
-- Band 5: Shows all positive features of Band 4 but not all positive features of Band 6
+### Phát âm (Pronunciation - P)
+- Band 9: Sử dụng đầy đủ các đặc điểm phát âm với độ chính xác và tinh tế
+- Band 7: Thể hiện tất cả các đặc điểm tích cực của Band 6 và một số của Band 8
+- Band 5: Thể hiện tất cả các đặc điểm tích cực của Band 4 nhưng không phải tất cả của Band 6
 
-## Response Format
-Provide your evaluation in the following JSON format ONLY (no additional text before or after):
+## Định dạng phản hồi
+Cung cấp đánh giá của bạn theo định dạng JSON sau (CHỈ JSON, không có text nào khác):
 
 ```json
 {{
-    "fluency_score": <score from 1.0 to 9.0 in 0.5 increments>,
-    "vocabulary_score": <score from 1.0 to 9.0 in 0.5 increments>,
-    "grammar_score": <score from 1.0 to 9.0 in 0.5 increments>,
-    "pronunciation_score": <score from 1.0 to 9.0 in 0.5 increments>,
-    "overall_band": <calculated average, rounded to nearest 0.5>,
-    "feedback": "<2-3 paragraph comprehensive feedback covering all four criteria>",
+    "fluency_score": <điểm từ 1.0 đến 9.0 theo bước 0.5>,
+    "vocabulary_score": <điểm từ 1.0 đến 9.0 theo bước 0.5>,
+    "grammar_score": <điểm từ 1.0 đến 9.0 theo bước 0.5>,
+    "pronunciation_score": <điểm từ 1.0 đến 9.0 theo bước 0.5>,
+    "overall_band": <điểm trung bình, làm tròn đến 0.5 gần nhất>,
+    "feedback": "<2-3 đoạn văn nhận xét tổng thể bằng tiếng Việt, bao gồm cả 4 tiêu chí>",
     "strengths": [
-        "<specific strength 1 with example from response>",
-        "<specific strength 2 with example from response>",
-        "<specific strength 3 with example from response>"
+        "<điểm mạnh cụ thể 1 với ví dụ từ câu trả lời - viết bằng tiếng Việt>",
+        "<điểm mạnh cụ thể 2 với ví dụ từ câu trả lời - viết bằng tiếng Việt>",
+        "<điểm mạnh cụ thể 3 với ví dụ từ câu trả lời - viết bằng tiếng Việt>"
     ],
     "improvements": [
-        "<specific area to improve 1 with actionable advice>",
-        "<specific area to improve 2 with actionable advice>",
-        "<specific area to improve 3 with actionable advice>"
+        "<điểm cần cải thiện 1 với lời khuyên cụ thể - viết bằng tiếng Việt>",
+        "<điểm cần cải thiện 2 với lời khuyên cụ thể - viết bằng tiếng Việt>",
+        "<điểm cần cải thiện 3 với lời khuyên cụ thể - viết bằng tiếng Việt>"
     ],
     "sample_corrections": [
         {{
-            "original": "<incorrect or improvable phrase from response>",
-            "corrected": "<improved version>",
-            "explanation": "<brief explanation>"
+            "original": "<cụm từ sai hoặc có thể cải thiện từ câu trả lời>",
+            "corrected": "<phiên bản đã sửa>",
+            "explanation": "<giải thích ngắn gọn bằng tiếng Việt>"
         }}
     ]
 }}
 ```
 
-## Important Guidelines:
-1. Be encouraging but honest - IELTS is a high-stakes exam and candidates need accurate feedback
-2. Use specific examples from the candidate's response to support your scores
-3. For Part 1, expect shorter answers (2-4 sentences); for Part 2, expect 1-2 minute monologues; for Part 3, expect discussion-style responses
-4. Consider that this is a transcription, so minor transcription artifacts should not heavily penalize pronunciation
-5. If the response is too short or off-topic, reflect this in the fluency score
-6. Provide practical, actionable advice for improvement
+## Hướng dẫn quan trọng:
+1. Khuyến khích nhưng trung thực - IELTS là kỳ thi quan trọng và thí sinh cần phản hồi chính xác
+2. Sử dụng ví dụ cụ thể từ câu trả lời của thí sinh để hỗ trợ điểm số
+3. Với Part 1, mong đợi câu trả lời ngắn (2-4 câu); Part 2, độc thoại 1-2 phút; Part 3, trả lời theo phong cách thảo luận
+4. Đây là bản ghi chuyển đổi từ giọng nói, nên các lỗi nhỏ trong chuyển đổi không nên ảnh hưởng nhiều đến điểm phát âm
+5. Nếu câu trả lời quá ngắn hoặc lạc đề, phản ánh điều này trong điểm độ trôi chảy
+6. Cung cấp lời khuyên thực tế, có thể thực hiện được
+7. TẤT CẢ phản hồi, nhận xét, điểm mạnh, điểm cần cải thiện và giải thích PHẢI VIẾT BẰNG TIẾNG VIỆT
 """
 
 
@@ -185,9 +186,13 @@ async def get_ielts_feedback(
             grammar_score=Decimal("0.0"),
             pronunciation_score=Decimal("0.0"),
             overall_band=Decimal("0.0"),
-            feedback="No response was detected or the response was too short to evaluate. Please try speaking more clearly and at a normal pace. For Part 1, aim for 2-4 sentences. For Part 2, speak for 1-2 minutes. For Part 3, provide detailed responses with examples.",
+            feedback="Không phát hiện được câu trả lời hoặc câu trả lời quá ngắn để đánh giá. Hãy thử nói rõ ràng hơn và với tốc độ bình thường. Với Part 1, hãy trả lời 2-4 câu. Với Part 2, nói trong 1-2 phút. Với Part 3, cung cấp câu trả lời chi tiết với ví dụ.",
             strengths=[],
-            improvements=["Provide a longer response", "Speak clearly into the microphone", "Address the question directly"],
+            improvements=[
+                "Cung cấp câu trả lời dài hơn",
+                "Nói rõ ràng vào microphone",
+                "Trả lời trực tiếp vào câu hỏi"
+            ],
             sample_corrections=[]
         )
     
@@ -226,48 +231,57 @@ async def get_ielts_feedback(
 
 
 def format_feedback_text(feedback: IELTSFeedback) -> str:
-    """Format IELTSFeedback into a readable text format for storage"""
+    """Format IELTSFeedback into a readable text format for storage (Vietnamese)"""
     sections = []
     
-    # Overall band
-    sections.append(f"📊 **Overall Band Score: {feedback.overall_band}**\n")
-    
-    # Individual scores
-    sections.append("### Scores by Criterion")
-    sections.append(f"- **Fluency and Coherence**: {feedback.fluency_score}")
-    sections.append(f"- **Lexical Resource**: {feedback.vocabulary_score}")
-    sections.append(f"- **Grammatical Range and Accuracy**: {feedback.grammar_score}")
-    sections.append(f"- **Pronunciation**: {feedback.pronunciation_score}")
+    # Tổng thể (Overall)
+    sections.append(f"## 📊 Tổng thể\n")
+    sections.append(f"**Điểm Band tổng: {feedback.overall_band}**\n")
+    sections.append("### Điểm theo tiêu chí")
+    sections.append(f"- **Độ trôi chảy và Mạch lạc (FC)**: {feedback.fluency_score}")
+    sections.append(f"- **Vốn từ vựng (LR)**: {feedback.vocabulary_score}")
+    sections.append(f"- **Ngữ pháp (GRA)**: {feedback.grammar_score}")
+    sections.append(f"- **Phát âm (P)**: {feedback.pronunciation_score}")
     sections.append("")
     
-    # Main feedback
-    sections.append("### Detailed Feedback")
+    # Main feedback - Tổng thể
+    sections.append("### Nhận xét chi tiết")
     sections.append(feedback.feedback)
     sections.append("")
     
-    # Strengths
+    # Điểm mạnh (Strengths)
     if feedback.strengths:
-        sections.append("### ✅ Strengths")
+        sections.append("## ✅ Điểm mạnh")
         for strength in feedback.strengths:
             sections.append(f"- {strength}")
         sections.append("")
     
-    # Areas for improvement
+    # Những điểm cần cải thiện (Areas to improve)
     if feedback.improvements:
-        sections.append("### 🎯 Areas for Improvement")
+        sections.append("## 🎯 Những điểm cần cải thiện")
         for improvement in feedback.improvements:
             sections.append(f"- {improvement}")
         sections.append("")
     
-    # Sample corrections
+    # Bản ghi - Sample corrections (Transcript corrections)
     if feedback.sample_corrections:
-        sections.append("### 📝 Language Corrections")
+        sections.append("## 📝 Bản ghi sửa lỗi")
         for correction in feedback.sample_corrections:
             if isinstance(correction, dict):
                 sections.append(f"- ❌ \"{correction.get('original', '')}\"")
                 sections.append(f"  ✓ \"{correction.get('corrected', '')}\"")
                 sections.append(f"  💡 {correction.get('explanation', '')}")
                 sections.append("")
+    
+    # Cải thiện (Improvement suggestions)
+    sections.append("## 💡 Gợi ý cải thiện")
+    if feedback.improvements:
+        sections.append("Dựa trên phân tích trên, bạn nên tập trung vào:")
+        for i, improvement in enumerate(feedback.improvements, 1):
+            sections.append(f"{i}. {improvement}")
+    else:
+        sections.append("Tiếp tục luyện tập và duy trì phong độ hiện tại!")
+    sections.append("")
     
     return "\n".join(sections)
 

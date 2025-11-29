@@ -1,12 +1,13 @@
 'use client';
 
 import Sidebar from '@/components/Sidebar';
+import FeedbackRenderer from '@/components/FeedbackRenderer';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   Mic, Play, Pause, Square, Volume2, RotateCcw, 
   Clock, CheckCircle2,
-  Loader2, Sparkles, AlertCircle
+  Loader2, Sparkles, AlertCircle, ChevronDown, ChevronUp
 } from 'lucide-react';
 import api from '@/lib/api';
 import { AudioRecorder, speakText, stopSpeaking } from '@/lib/audioRecorder';
@@ -28,6 +29,7 @@ interface PracticeSession {
   vocabulary_score: number | null;
   grammar_score: number | null;
   pronunciation_score: number | null;
+  overall_band: number | null;
   feedback: string | null;
   created_at: string;
 }
@@ -58,6 +60,7 @@ export default function QuestionPracticePage() {
   const [audioError, setAudioError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [expandedFeedback, setExpandedFeedback] = useState<{ [key: number]: boolean }>({});
   
   const recorderRef = useRef<AudioRecorder | null>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
@@ -496,9 +499,9 @@ export default function QuestionPracticePage() {
               )}
 
               {lastSubmission.feedback && (
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <div className="text-sm font-semibold text-blue-900 mb-2">Nhận xét:</div>
-                  <div className="text-blue-800 whitespace-pre-line">{lastSubmission.feedback}</div>
+                <div className="mt-4">
+                  <div className="text-sm font-semibold text-gray-800 mb-3">Nhận xét chi tiết:</div>
+                  <FeedbackRenderer feedback={lastSubmission.feedback} />
                 </div>
               )}
 
@@ -526,9 +529,10 @@ export default function QuestionPracticePage() {
                   const overallScore = getOverallScore(session);
                   const sessionDate = new Date(session.created_at);
                   const daysAgo = Math.floor((Date.now() - sessionDate.getTime()) / (1000 * 60 * 60 * 24));
+                  const isExpanded = expandedFeedback[session.id] || false;
                   
                   return (
-                    <div key={session.id} className="border border-gray-200 rounded-lg p-4">
+                    <div key={session.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
                           <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${getScoreColor(overallScore)} bg-gray-100`}>
@@ -543,21 +547,38 @@ export default function QuestionPracticePage() {
                             </div>
                           </div>
                         </div>
-                        <button
-                          onClick={() => {
-                            if (session.audio_url) {
-                              const audioUrl = session.audio_url.startsWith('http') 
-                                ? session.audio_url 
-                                : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${session.audio_url}`;
-                              const audio = new Audio(audioUrl);
-                              audio.play();
-                            }
-                          }}
-                          className="p-2 text-gray-600 hover:text-primary-600 transition-colors"
-                          disabled={!session.audio_url}
-                        >
-                          <Play size={18} />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              if (session.audio_url) {
+                                const audioUrl = session.audio_url.startsWith('http') 
+                                  ? session.audio_url 
+                                  : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${session.audio_url}`;
+                                const audio = new Audio(audioUrl);
+                                audio.play();
+                              }
+                            }}
+                            className="p-2 text-gray-600 hover:text-primary-600 transition-colors"
+                            disabled={!session.audio_url}
+                            title="Phát lại bản ghi"
+                          >
+                            <Play size={18} />
+                          </button>
+                          {session.feedback && (
+                            <button
+                              onClick={() => {
+                                setExpandedFeedback({
+                                  ...expandedFeedback,
+                                  [session.id]: !isExpanded,
+                                });
+                              }}
+                              className="p-2 text-gray-600 hover:text-primary-600 transition-colors"
+                              title={isExpanded ? 'Ẩn phản hồi' : 'Xem phản hồi'}
+                            >
+                              {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                            </button>
+                          )}
+                        </div>
                       </div>
                       
                       {session.transcription && (
@@ -566,12 +587,20 @@ export default function QuestionPracticePage() {
                         </div>
                       )}
                       
-                      <div className="flex gap-4 text-xs">
-                        <span>Trôi chảy: {session.fluency_score?.toFixed(1) || 'N/A'}</span>
-                        <span>Từ vựng: {session.vocabulary_score?.toFixed(1) || 'N/A'}</span>
-                        <span>Ngữ pháp: {session.grammar_score?.toFixed(1) || 'N/A'}</span>
-                        <span>Phát âm: {session.pronunciation_score?.toFixed(1) || 'N/A'}</span>
+                      <div className="flex gap-4 text-xs mb-3">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">Trôi chảy: {session.fluency_score?.toFixed(1) || 'N/A'}</span>
+                        <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded">Từ vựng: {session.vocabulary_score?.toFixed(1) || 'N/A'}</span>
+                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded">Ngữ pháp: {session.grammar_score?.toFixed(1) || 'N/A'}</span>
+                        <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded">Phát âm: {session.pronunciation_score?.toFixed(1) || 'N/A'}</span>
                       </div>
+
+                      {/* Feedback Section */}
+                      {session.feedback && isExpanded && (
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <div className="text-sm font-semibold text-gray-800 mb-3">Nhận xét chi tiết:</div>
+                          <FeedbackRenderer feedback={session.feedback} />
+                        </div>
+                      )}
                     </div>
                   );
                 })}

@@ -23,6 +23,7 @@ export default function LoginPage() {
   });
   const [error, setError] = useState('');
   const [googleLoaded, setGoogleLoaded] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
   const [googleClientId] = useState(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '');
 
   const handleGoogleSignIn = useCallback(async (response: any) => {
@@ -48,19 +49,18 @@ export default function LoginPage() {
       return;
     }
 
-    // Load Google Identity Services
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      if (window.google && googleClientId) {
+    let retryCount = 0;
+    const maxRetries = 2;
+
+    const initializeGoogleSignIn = () => {
+      if (window.google && window.google.accounts && googleClientId) {
         try {
           window.google.accounts.id.initialize({
             client_id: googleClientId,
             callback: handleGoogleSignIn,
           });
           setGoogleLoaded(true);
+          setGoogleError(null);
           
           // Render Google Sign-In button
           const buttonContainer = document.getElementById('google-signin-button');
@@ -73,22 +73,59 @@ export default function LoginPage() {
               locale: 'vi',
             });
           }
-        } catch (err) {
+        } catch (err: any) {
           console.error('Error initializing Google OAuth:', err);
-          setError('Failed to initialize Google Sign-In. Please check your configuration.');
+          setGoogleError('Không thể khởi tạo Google Sign-In. Vui lòng kiểm tra cấu hình.');
+          setGoogleLoaded(false);
         }
+      } else {
+        setGoogleError('Google Sign-In không khả dụng. Vui lòng thử lại sau.');
+        setGoogleLoaded(false);
       }
     };
-    script.onerror = () => {
-      console.error('Failed to load Google Identity Services script');
-      setError('Failed to load Google Sign-In. Please check your internet connection.');
+
+    // Check if script is already loaded
+    const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+    if (existingScript) {
+      // Script already exists, wait a bit and initialize
+      setTimeout(initializeGoogleSignIn, 100);
+      return;
+    }
+
+    const loadGoogleScript = () => {
+      // Load Google Identity Services
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.crossOrigin = 'anonymous';
+      
+      script.onload = () => {
+        // Wait a bit for the script to fully initialize
+        setTimeout(initializeGoogleSignIn, 100);
+      };
+      
+      script.onerror = () => {
+        console.error('Failed to load Google Identity Services script');
+        if (retryCount < maxRetries) {
+          retryCount++;
+          console.log(`Retrying to load Google Sign-In script (attempt ${retryCount + 1}/${maxRetries + 1})...`);
+          setTimeout(loadGoogleScript, 1000 * retryCount); // Exponential backoff
+        } else {
+          setGoogleError('Không thể tải Google Sign-In. Vui lòng kiểm tra kết nối internet hoặc thử lại sau.');
+          setGoogleLoaded(false);
+        }
+      };
+      
+      document.head.appendChild(script);
     };
-    document.body.appendChild(script);
+
+    loadGoogleScript();
 
     return () => {
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
+      // Don't remove script on cleanup as it might be used by other components
+      // Just clear the error state
+      setGoogleError(null);
     };
   }, [handleGoogleSignIn, googleClientId]);
 
@@ -218,7 +255,20 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div id="google-signin-button" className="mt-4 w-full flex justify-center"></div>
+            <div id="google-signin-button" className="mt-4 w-full flex justify-center min-h-[42px]">
+              {!googleLoaded && !googleError && (
+                <div className="text-sm text-gray-500">Đang tải Google Sign-In...</div>
+              )}
+            </div>
+            
+            {googleError && (
+              <div className="mt-2 bg-yellow-50 border border-yellow-200 text-yellow-700 px-3 py-2 rounded-lg text-sm">
+                {googleError}
+                <div className="mt-1 text-xs text-yellow-600">
+                  Bạn vẫn có thể đăng nhập bằng tên đăng nhập và mật khẩu ở trên.
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

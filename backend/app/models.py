@@ -60,7 +60,11 @@ class PracticeSession(Base):
     vocabulary_score = Column(DECIMAL(3, 2))
     grammar_score = Column(DECIMAL(3, 2))
     pronunciation_score = Column(DECIMAL(3, 2))
+    overall_band = Column(DECIMAL(3, 2))  # Overall IELTS band score
     feedback = Column(Text)
+    feedback_strengths = Column(Text)  # JSON array of strengths
+    feedback_improvements = Column(Text)  # JSON array of improvements
+    feedback_corrections = Column(Text)  # JSON array of corrections
     created_at = Column(TIMESTAMP, server_default=func.now(), index=True)
 
     __table_args__ = (
