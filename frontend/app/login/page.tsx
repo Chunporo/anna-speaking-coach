@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
@@ -25,6 +25,8 @@ export default function LoginPage() {
   const [googleLoaded, setGoogleLoaded] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
   const [googleClientId] = useState(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '');
+  const googleButtonRef = useRef<HTMLDivElement>(null);
+  const googleInitialized = useRef(false);
 
   const handleGoogleSignIn = useCallback(async (response: any) => {
     setError('');
@@ -92,26 +94,35 @@ export default function LoginPage() {
     const maxRetries = 2;
 
     const initializeGoogleSignIn = () => {
+      // Prevent double initialization
+      if (googleInitialized.current) return;
+      
       if (window.google && window.google.accounts && googleClientId) {
         try {
           window.google.accounts.id.initialize({
             client_id: googleClientId,
             callback: handleGoogleSignIn,
           });
-          setGoogleLoaded(true);
-          setGoogleError(null);
           
-          // Render Google Sign-In button
-          const buttonContainer = document.getElementById('google-signin-button');
+          // Render Google Sign-In button using ref
+          const buttonContainer = googleButtonRef.current;
           if (buttonContainer && window.google.accounts.id.renderButton) {
+            // Clear any existing content first to prevent conflicts
+            buttonContainer.innerHTML = '';
+            
             window.google.accounts.id.renderButton(buttonContainer, {
               theme: 'outline',
               size: 'large',
-              width: '100%',
+              width: 300, // Must be a pixel value, not a percentage
               text: 'signin_with',
               locale: 'vi',
             });
+            
+            googleInitialized.current = true;
           }
+          
+          setGoogleLoaded(true);
+          setGoogleError(null);
         } catch (err: any) {
           console.error('Error initializing Google OAuth:', err);
           setGoogleError('Không thể khởi tạo Google Sign-In. Vui lòng kiểm tra cấu hình.');
@@ -212,7 +223,14 @@ export default function LoginPage() {
 
     return () => {
       // Don't remove script on cleanup as it might be used by other components
-      // Just clear the error state
+      // Reset initialized flag so it can be re-initialized if needed
+      googleInitialized.current = false;
+      
+      // Clear the button container to prevent React DOM conflicts
+      if (googleButtonRef.current) {
+        googleButtonRef.current.innerHTML = '';
+      }
+      
       setGoogleError(null);
     };
   }, [handleGoogleSignIn, googleClientId]);
@@ -343,10 +361,19 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div id="google-signin-button" className="mt-4 w-full flex justify-center min-h-[42px]">
+            <div className="mt-4 w-full flex justify-center min-h-[42px]">
               {!googleLoaded && !googleError && (
                 <div className="text-sm text-gray-500">Đang tải Google Sign-In...</div>
               )}
+              {/* 
+                Using a separate div with ref for Google button to prevent React DOM conflicts.
+                Google's GSI library manipulates this div directly, so we keep it separate
+                from React-managed content.
+              */}
+              <div 
+                ref={googleButtonRef}
+                style={{ display: googleLoaded ? 'block' : 'none' }}
+              />
             </div>
             
             {googleError && (

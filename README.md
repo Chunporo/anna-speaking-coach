@@ -54,6 +54,7 @@ A full-stack web application for IELTS speaking practice, built with **FastAPI**
 - [API Endpoints](#-api-endpoints)
 - [Database Schema](#-database-schema)
 - [Development](#-development)
+- [Deployment](#-deployment)
 - [Google OAuth Setup](#-google-oauth-setup)
 - [License](#-license)
 
@@ -233,6 +234,21 @@ INSERT INTO questions (part, topic, question_text) VALUES
 **Frontend (.env.local):**
 - `NEXT_PUBLIC_API_URL` - Backend API URL
 - `NEXT_PUBLIC_GOOGLE_CLIENT_ID` - Google OAuth Client ID (same as backend)
+
+## 🚀 Deployment
+
+To deploy your application to production, see the comprehensive deployment guides:
+
+- **[Quick Start Deployment](./DEPLOY_QUICKSTART.md)** - Fast deployment options (Vercel + Railway)
+- **[Full Deployment Guide](./DEPLOYMENT.md)** - Detailed instructions for multiple platforms:
+  - Vercel + Railway/Render (Recommended)
+  - Docker Compose
+  - Traditional VPS (Ubuntu/Debian)
+  - AWS/GCP/Azure
+
+### Quick Deploy
+
+**Easiest option:** Deploy frontend to [Vercel](https://vercel.com) and backend to [Railway](https://railway.app). See [DEPLOY_QUICKSTART.md](./DEPLOY_QUICKSTART.md) for step-by-step instructions.
 
 ## 🔐 Google OAuth Setup
 
