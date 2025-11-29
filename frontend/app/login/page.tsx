@@ -29,16 +29,37 @@ export default function LoginPage() {
   const handleGoogleSignIn = useCallback(async (response: any) => {
     setError('');
     try {
+      if (!response?.credential) {
+        throw new Error('Không nhận được token từ Google. Vui lòng thử lại.');
+      }
+
       const authResponse = await api.post('/api/auth/google', {
         token: response.credential,
       });
+      
+      if (!authResponse.data?.access_token) {
+        throw new Error('Không nhận được token từ server. Vui lòng thử lại.');
+      }
       
       setToken(authResponse.data.access_token);
       const userResponse = await api.get('/api/auth/me');
       setUser(userResponse.data);
       router.push('/');
     } catch (err: any) {
-      setError(getErrorMessage(err));
+      console.error('Google Sign-In error:', err);
+      
+      // Provide more specific error messages
+      if (err.response?.status === 401) {
+        setError('Xác thực Google thất bại. Token không hợp lệ hoặc đã hết hạn.');
+      } else if (err.response?.status === 403) {
+        setError('Không có quyền truy cập. Vui lòng kiểm tra cấu hình CORS.');
+      } else if (err.response?.status === 503) {
+        setError('Không thể kết nối đến Google OAuth service. Vui lòng thử lại sau.');
+      } else if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
+        setError('Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet và thử lại.');
+      } else {
+        setError(getErrorMessage(err) || 'Đăng nhập Google thất bại. Vui lòng thử lại.');
+      }
     }
   }, [setToken, setUser, router]);
 
@@ -47,6 +68,24 @@ export default function LoginPage() {
     if (!googleClientId) {
       console.warn('Google OAuth client ID not configured. Set NEXT_PUBLIC_GOOGLE_CLIENT_ID in .env.local');
       return;
+    }
+
+    // Check if this is a cloud IDE environment that may have proxy/network restrictions
+    // These environments often block external script loading
+    const hostname = window.location.hostname;
+    const origin = window.location.origin;
+    const isCloudIDE = hostname.includes('puter.com') ||
+                      hostname.includes('codesandbox') ||
+                      hostname.includes('stackblitz') ||
+                      hostname.includes('replit') ||
+                      hostname.includes('gitpod') ||
+                      origin.includes('js.puter.com');
+    
+    if (isCloudIDE) {
+      console.warn(`Cloud IDE environment detected (${hostname}) - Google Sign-In disabled due to network restrictions`);
+      setGoogleError('Google Sign-In không khả dụng trong môi trường cloud IDE này (hạn chế proxy/mạng). Bạn vẫn có thể đăng nhập bằng tên đăng nhập và mật khẩu.');
+      setGoogleLoaded(false);
+      return; // Early return - don't attempt to load Google script
     }
 
     let retryCount = 0;
@@ -94,19 +133,68 @@ export default function LoginPage() {
 
     const loadGoogleScript = () => {
       // Load Google Identity Services
+      // Note: Don't set crossOrigin - Google's script should load without it
+      // Setting crossOrigin can cause CORS issues
       const script = document.createElement('script');
       script.src = 'https://accounts.google.com/gsi/client';
       script.async = true;
       script.defer = true;
-      script.crossOrigin = 'anonymous';
       
       script.onload = () => {
         // Wait a bit for the script to fully initialize
         setTimeout(initializeGoogleSignIn, 100);
       };
       
-      script.onerror = () => {
-        console.error('Failed to load Google Identity Services script');
+      script.onerror = (error) => {
+        // CORS errors from Google's server are a known limitation
+        // They appear in console but the error event may not have the message
+        // Since we can't reliably detect CORS in the error event, we'll:
+        // 1. Check for known error patterns
+        // 2. On first failure, check if it's likely a CORS issue
+        // 3. Don't retry if it looks like CORS (it won't work)
+        
+        const errorMessage = error instanceof ErrorEvent ? error.message : '';
+        const target = error instanceof ErrorEvent ? error.target : null;
+        
+        // Check for CORS indicators
+        // CORS errors typically show as network failures even when server responds with 200
+        // If script fails to load from Google on first attempt, it's likely CORS
+        const isLikelyCorsError = retryCount === 0 && (
+          errorMessage.includes('Failed') ||
+          errorMessage.includes('ERR_FAILED') ||
+          errorMessage.includes('CORS') ||
+          errorMessage.includes('Access-Control') ||
+          (target && (target as HTMLScriptElement).src?.includes('accounts.google.com'))
+        );
+        
+        const hasProxyError = errorMessage.includes('ERR_NO_SUPPORTED_PROXIES') ||
+                            errorMessage.includes('proxy') ||
+                            window.location.hostname.includes('puter.com') ||
+                            window.location.hostname.includes('codesandbox');
+        
+        // Don't retry for CORS or proxy errors - they won't work
+        // CORS errors from Google are a browser/Google limitation, not our code
+        if (hasProxyError) {
+          setGoogleError('Google Sign-In không khả dụng trong môi trường này (hạn chế proxy/mạng). Bạn vẫn có thể đăng nhập bằng tên đăng nhập và mật khẩu.');
+          setGoogleLoaded(false);
+          return;
+        }
+        
+        // For first attempt failures from localhost, it's likely CORS
+        // Google's script sometimes has CORS issues from localhost
+        // Don't retry - CORS errors won't be fixed by retrying
+        if (retryCount === 0 && (isLikelyCorsError || window.location.hostname === 'localhost')) {
+          setGoogleError('Google Sign-In bị chặn bởi chính sách CORS của trình duyệt/Google. Đây là hạn chế từ phía Google, không phải lỗi của ứng dụng. Bạn vẫn có thể đăng nhập bằng tên đăng nhập và mật khẩu.');
+          setGoogleLoaded(false);
+          return;
+        }
+        
+        // Don't log errors in cloud IDEs as they're expected
+        if (!isCloudIDE) {
+          console.error('Failed to load Google Identity Services script', error);
+        }
+        
+        // For other errors, retry once (but not for CORS/proxy)
         if (retryCount < maxRetries) {
           retryCount++;
           console.log(`Retrying to load Google Sign-In script (attempt ${retryCount + 1}/${maxRetries + 1})...`);
@@ -263,10 +351,12 @@ export default function LoginPage() {
             
             {googleError && (
               <div className="mt-2 bg-yellow-50 border border-yellow-200 text-yellow-700 px-3 py-2 rounded-lg text-sm">
-                {googleError}
-                <div className="mt-1 text-xs text-yellow-600">
-                  Bạn vẫn có thể đăng nhập bằng tên đăng nhập và mật khẩu ở trên.
-                </div>
+                <div className="font-medium mb-1">⚠️ {googleError}</div>
+                {!googleError.includes('Bạn vẫn có thể') && (
+                  <div className="mt-1 text-xs text-yellow-600">
+                    Bạn vẫn có thể đăng nhập bằng tên đăng nhập và mật khẩu ở trên.
+                  </div>
+                )}
               </div>
             )}
           </div>
