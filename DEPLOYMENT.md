@@ -65,29 +65,40 @@ This is the easiest and most cost-effective option for beginners.
 2. **Create New Project** → "Deploy from GitHub repo"
 
 3. **Select your repository** and set Root Directory to `backend`
+   - Railway will automatically detect Python from `requirements.txt`
+   - The project includes `Procfile` and `railway.json` for auto-configuration
 
 4. **Add PostgreSQL Database**
    - Click "New" → "Database" → "Add PostgreSQL"
    - Railway will automatically create a `DATABASE_URL` environment variable
 
-5. **Set Environment Variables**
+5. **Configure the Service**
+   - Go to your service → "Settings" tab
+   - Under "Deploy":
+     - **Start Command:** Should auto-detect as `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+     - If not set, add it manually: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - Under "Healthcheck" (optional but recommended):
+     - **Healthcheck Path:** `/api/health`
+     - **Timeout:** 100
+
+6. **Set Environment Variables**
+   Go to "Variables" tab and add:
    ```env
-   DATABASE_URL=postgresql://...  # Auto-added by Railway
+   DATABASE_URL=postgresql://...  # Auto-added by Railway when you add PostgreSQL
    SECRET_KEY=your-secret-key-here-generate-with-openssl-rand-hex-32
    GOOGLE_CLIENT_ID=your-google-client-id
    GOOGLE_CLIENT_SECRET=your-google-client-secret
    ENVIRONMENT=production
    ALLOWED_ORIGINS=https://your-frontend-url.vercel.app
    ```
-
-6. **Configure Start Command**
-   - Go to Settings → Deploy
-   - Set Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   (Update ALLOWED_ORIGINS after frontend is deployed)
 
 7. **Deploy!** Railway will:
-   - Build your FastAPI app
-   - Run migrations (you may need to do this manually)
+   - Install dependencies from `requirements.txt`
+   - Start your FastAPI app using the Procfile/railway.json configuration
    - Give you a URL (e.g., `https://your-app.up.railway.app`)
+
+**Note:** The project includes configuration files (`Procfile`, `railway.json`, `runtime.txt`) that tell Railway how to build and run your app. Railway should auto-detect these, but you can verify settings in the service Settings tab.
 
 8. **Initialize Database**
    - Go to your Railway PostgreSQL database
@@ -620,11 +631,27 @@ sudo chmod -R 755 /var/www/english_speaking_test/backend/uploads
 
 ## Troubleshooting
 
+### Railway: "Railpack could not determine how to build the app"
+
+**Solution:**
+1. Verify **Root Directory** is set to `backend` in Railway project settings
+2. Ensure these files exist in your `backend` directory:
+   - ✅ `requirements.txt` (for Python dependencies)
+   - ✅ `Procfile` (contains start command)
+   - ✅ `railway.json` (Railway configuration)
+   - ✅ `runtime.txt` (Python version specification)
+3. Check Railway Settings → Deploy:
+   - **Start Command** should be: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - If missing, set it manually
+4. If issues persist, check Railway logs for specific error messages
+5. Redeploy the service after making changes
+
 ### Frontend can't connect to backend
 
 - Check `NEXT_PUBLIC_API_URL` is set correctly
 - Verify CORS settings in backend
 - Check backend is accessible from frontend domain
+- Ensure `ALLOWED_ORIGINS` includes your frontend URL
 
 ### Database connection errors
 

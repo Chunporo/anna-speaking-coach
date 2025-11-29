@@ -39,22 +39,44 @@ This is a simplified guide for the fastest deployment options.
 
 ### Step 2: Deploy Backend to Railway (10 minutes)
 
-1. Go to [railway.app](https://railway.app) and sign up
-2. Click "New Project" → "Deploy from GitHub repo"
-3. Select your repo and set **Root Directory** to `backend`
-4. Add PostgreSQL database:
+1. **Go to [railway.app](https://railway.app)** and sign up
+
+2. **Click "New Project"** → "Deploy from GitHub repo"
+
+3. **Select your repo** and set **Root Directory** to `backend`
+   - Railway should detect Python from `requirements.txt`
+   - The project includes `Procfile` and `railway.json` for auto-configuration
+
+4. **Add PostgreSQL database:**
    - Click "New" → "Database" → "Add PostgreSQL"
-5. Add Environment Variables:
+   - Railway will automatically create a `DATABASE_URL` environment variable
+
+5. **Configure the service:**
+   - Go to your service → "Settings" tab
+   - Under "Deploy", verify:
+     - **Start Command:** Should auto-detect as `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+     - If not, set it manually
+   - Under "Healthcheck":
+     - **Healthcheck Path:** `/api/health` (optional, but recommended)
+
+6. **Add Environment Variables:**
+   Go to "Variables" tab and add:
    ```
-   DATABASE_URL=postgresql://... (auto-added)
+   DATABASE_URL=postgresql://... (auto-added by Railway when you add PostgreSQL)
    SECRET_KEY=generate-with-openssl-rand-hex-32
    GOOGLE_CLIENT_ID=your-google-client-id
    GOOGLE_CLIENT_SECRET=your-google-client-secret
    ENVIRONMENT=production
    ALLOWED_ORIGINS=https://your-frontend.vercel.app
    ```
-6. Set Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-7. Deploy ✅
+   (Update ALLOWED_ORIGINS after frontend is deployed)
+
+7. **Deploy!** Railway will:
+   - Install dependencies from `requirements.txt`
+   - Start your FastAPI app
+   - Give you a URL (e.g., `https://your-app.up.railway.app`)
+
+**Note:** The project includes `Procfile` and `railway.json` which tell Railway how to build and run your app automatically.
 
 ### Step 3: Initialize Database
 
@@ -143,6 +165,19 @@ openssl rand -hex 32
 ---
 
 ## Troubleshooting
+
+### Railway: "Railpack could not determine how to build the app"
+
+**Solution:**
+1. Make sure you set **Root Directory** to `backend` in Railway project settings
+2. Verify these files exist in your `backend` directory:
+   - ✅ `requirements.txt`
+   - ✅ `Procfile` (created automatically)
+   - ✅ `railway.json` (created automatically)
+3. Check Railway Settings → Deploy:
+   - **Start Command** should be: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - If missing, set it manually
+4. Redeploy the service
 
 ### Vercel Build Errors: "Module not found: Can't resolve '@/lib/api'"
 
