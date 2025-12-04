@@ -6,11 +6,25 @@ const nextConfig = {
   // Enable standalone output for Docker deployment
   output: process.env.DOCKER_BUILD === 'true' ? 'standalone' : undefined,
   // Configure webpack to resolve @/ alias
-  webpack: (config) => {
+  webpack: (config, { dir, defaultLoaders }) => {
+    // Get the absolute path to the project root (frontend directory)
+    const projectRoot = path.resolve(dir || __dirname);
+    
+    // Configure alias to match tsconfig.json: "@/*": ["./*"]
+    // This means @/lib/api should resolve to ./lib/api from project root
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@': path.resolve(__dirname),
+      '@': projectRoot,
     };
+    
+    // Ensure webpack resolves modules from the project directory
+    if (!config.resolve.modules) {
+      config.resolve.modules = [];
+    }
+    if (!config.resolve.modules.includes(projectRoot)) {
+      config.resolve.modules.unshift(projectRoot);
+    }
+    
     return config;
   },
 }
