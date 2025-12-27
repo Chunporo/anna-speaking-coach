@@ -1,60 +1,25 @@
 from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.routers import auth, questions, practice, mock_test, progress, users, transcription, feedback
-import os
+from app.core.config import settings
+from app.core.middleware import setup_cors_middleware, cors_debug_middleware
 import logging
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="IELTS Speaking Practice API", version="1.0.0")
+app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION)
 
 # Mount static files for audio uploads
-if os.path.exists("uploads"):
+if settings.UPLOAD_DIR.parent.exists():
     app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-# CORS configuration
-# Get allowed origins from environment variable or use defaults
-ALLOWED_ORIGINS_STR = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
-ALLOWED_ORIGINS = [origin.strip() for origin in ALLOWED_ORIGINS_STR.split(",") if origin.strip()]
-
-ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
-
-# In development, we can be more permissive
-# Note: FastAPI CORS with allow_origins=["*"] works but requires allow_credentials=False
-# For cloud IDEs, we'll use a custom approach
-if ENVIRONMENT == "development":
-    # In development, allow all origins (set allow_origins to ["*"])
-    # But this requires allow_credentials=False
-    CORS_ALLOW_ALL = os.getenv("CORS_ALLOW_ALL", "true").lower() == "true"
-    if CORS_ALLOW_ALL:
-        logger.warning("CORS: Allowing all origins in development mode (allow_credentials will be False)")
-        ALLOWED_ORIGINS = ["*"]
-        ALLOW_CREDENTIALS = False
-    else:
-        ALLOW_CREDENTIALS = True
-        logger.info(f"CORS: Allowing specific origins: {ALLOWED_ORIGINS}")
-else:
-    ALLOW_CREDENTIALS = True
-    logger.info(f"CORS: Production mode - Allowing origins: {ALLOWED_ORIGINS}")
-
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=ALLOW_CREDENTIALS,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Setup CORS middleware
+setup_cors_middleware(app)
 
 # CORS debugging middleware (optional, for troubleshooting)
 @app.middleware("http")
-async def cors_debug_middleware(request: Request, call_next):
-    origin = request.headers.get("origin")
-    if origin:
-        logger.debug(f"CORS request from origin: {origin}")
-    response = await call_next(request)
-    return response
+async def cors_debug(request: Request, call_next):
+    return await cors_debug_middleware(request, call_next)
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
@@ -84,8 +49,7 @@ async def cors_test(request: Request):
     return {
         "status": "CORS test successful",
         "origin": origin,
-        "allowed_origins": ALLOWED_ORIGINS,
-        "allow_credentials": ALLOW_CREDENTIALS,
-        "environment": ENVIRONMENT
+        "allowed_origins": settings.allowed_origins,
+        "allow_credentials": settings.allow_credentials,
+        "environment": settings.ENVIRONMENT
     }
-

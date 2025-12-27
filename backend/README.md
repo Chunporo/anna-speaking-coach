@@ -27,13 +27,8 @@ cp .env.example .env
 4. Run the server:
 ```bash
 uvicorn app.main:app --reload --port 8000
-```
-
-## API Documentation
-
-Once the server is running, visit:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+```uvicorn app.main:app --reload --port 8000
+ttp://localhost:8000/redoc
 
 ## Endpoints
 
@@ -47,4 +42,3 @@ Once the server is running, visit:
 - `/api/progress/daily` - Get daily progress
 - `/api/progress/streak` - Get streak info
 - `/api/progress/part-progress` - Get part progress
-

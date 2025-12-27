@@ -5,7 +5,7 @@
 <div align="center">
   <h1>🎤 IELTS Speaking Practice Platform</h1>
   <p>A comprehensive full-stack web application for IELTS speaking practice with AI-powered feedback</p>
-  
+
   <div>
     <a href="https://github.com/chunporo/english_speaking_test/blob/master/LICENSE"><img height="20" src="https://img.shields.io/badge/license-MIT-blue" alt="license"/></a>
     <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-0.104.1-009688?logo=fastapi&logoColor=white" alt="FastAPI"/></a>
@@ -16,7 +16,7 @@
     <a href="https://openai.com/research/whisper"><img src="https://img.shields.io/badge/Whisper-AI_Transcription-10a37f?logo=openai&logoColor=white" alt="Whisper"/></a>
     <a href="https://developer.puter.com/tutorials/free-unlimited-text-to-speech-api/"><img src="https://img.shields.io/badge/TTS-Puter.js-green" alt="TTS"/></a>
   </div>
-  
+
   <div>
     <a href="#features"><img src="https://img.shields.io/badge/features-8+-purple" alt="features"/></a>
     <a href="#quick-start"><img src="https://img.shields.io/badge/quick_start-5_min-orange" alt="quick-start"/></a>
@@ -80,6 +80,8 @@ english_speaking_test/
 ```
 
 ## 🚀 Quick Start
+
+For detailed setup instructions, see **[Quick Start Guide](./docs/setup/QUICKSTART.md)**.
 
 ### Backend Setup
 
@@ -226,6 +228,8 @@ INSERT INTO questions (part, topic, question_text) VALUES
 
 ### Environment Variables
 
+For detailed environment variable setup, see **[Environment Setup Guide](./docs/setup/ENV_SETUP.md)**.
+
 **Backend (.env):**
 - `DATABASE_URL` - PostgreSQL connection string
 - `SECRET_KEY` - Secret key for JWT tokens
@@ -239,8 +243,8 @@ INSERT INTO questions (part, topic, question_text) VALUES
 
 To deploy your application to production, see the comprehensive deployment guides:
 
-- **[Quick Start Deployment](./DEPLOY_QUICKSTART.md)** - Fast deployment options (Vercel + Railway)
-- **[Full Deployment Guide](./DEPLOYMENT.md)** - Detailed instructions for multiple platforms:
+- **[Quick Start Deployment](./docs/deployment/DEPLOY_QUICKSTART.md)** - Fast deployment options (Vercel + Railway)
+- **[Full Deployment Guide](./docs/deployment/DEPLOYMENT.md)** - Detailed instructions for multiple platforms:
   - Vercel + Railway/Render (Recommended)
   - Docker Compose
   - Traditional VPS (Ubuntu/Debian)
@@ -248,7 +252,7 @@ To deploy your application to production, see the comprehensive deployment guide
 
 ### Quick Deploy
 
-**Easiest option:** Deploy frontend to [Vercel](https://vercel.com) and backend to [Railway](https://railway.app). See [DEPLOY_QUICKSTART.md](./DEPLOY_QUICKSTART.md) for step-by-step instructions.
+**Easiest option:** Deploy frontend to [Vercel](https://vercel.com) and backend to [Railway](https://railway.app). See [DEPLOY_QUICKSTART.md](./docs/deployment/DEPLOY_QUICKSTART.md) for step-by-step instructions.
 
 ## 🔐 Google OAuth Setup
 
@@ -274,4 +278,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   <p>Made with ❤️ for IELTS learners</p>
   <p>⭐ Star this repo if you find it helpful!</p>
 </div>
-

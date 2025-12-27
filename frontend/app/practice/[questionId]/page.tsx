@@ -2,243 +2,106 @@
 
 import Sidebar from '@/components/Sidebar';
 import FeedbackRenderer from '@/components/FeedbackRenderer';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { 
-  Mic, Play, Pause, Square, Volume2, RotateCcw, 
+import {
+  Mic, Play, Pause, Square, Volume2, RotateCcw,
   Clock, CheckCircle2,
   Loader2, Sparkles, AlertCircle, ChevronDown, ChevronUp
 } from 'lucide-react';
-import api from '@/lib/api';
-import { AudioRecorder, speakText, stopSpeaking } from '@/lib/audioRecorder';
-
-interface Question {
-  id: number;
-  part: number;
-  topic: string;
-  question_text: string;
-}
-
-interface PracticeSession {
-  id: number;
-  question_id: number;
-  part: number;
-  audio_url: string | null;
-  transcription: string | null;
-  fluency_score: number | null;
-  vocabulary_score: number | null;
-  grammar_score: number | null;
-  pronunciation_score: number | null;
-  overall_band: number | null;
-  feedback: string | null;
-  created_at: string;
-}
-
-interface PracticeHistory {
-  sessions: PracticeSession[];
-  total_practices: number;
-}
+import { useQuestion } from '@/hooks/useQuestion';
+import { usePracticeHistory } from '@/hooks/usePracticeHistory';
+import { useAudioRecorder } from '@/hooks/useAudioRecorder';
+import { useAudioPlayback } from '@/hooks/useAudioPlayback';
+import { usePracticeSubmission } from '@/hooks/usePracticeSubmission';
+import { formatTime, getScoreColor, calculateOverallScore } from '@/lib/utils';
+import { PracticeSession } from '@/lib/types';
 
 export default function QuestionPracticePage() {
   const params = useParams();
   const router = useRouter();
   const questionId = parseInt(params.questionId as string);
-  
-  const [question, setQuestion] = useState<Question | null>(null);
-  const [practiceHistory, setPracticeHistory] = useState<PracticeHistory | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [lastSubmission, setLastSubmission] = useState<PracticeSession | null>(null);
-  
-  // Audio recorder state
-  const [isRecording, setIsRecording] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [audioError, setAudioError] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Custom hooks
+  const { question, loading: questionLoading, error: questionError } = useQuestion(questionId);
+  const { practiceHistory, refetch: refetchHistory } = usePracticeHistory(questionId);
+  const {
+    isRecording,
+    isPaused,
+    recordingTime,
+    audioBlob,
+    audioUrl,
+    error: recorderError,
+    startRecording,
+    stopRecording,
+    pauseRecording,
+    resumeRecording,
+    resetRecording,
+  } = useAudioRecorder();
+  const {
+    isPlaying,
+    isSpeaking,
+    error: playbackError,
+    playRecording,
+    stopPlayback,
+    speakQuestion,
+  } = useAudioPlayback();
+  const {
+    submitting,
+    analyzing,
+    error: submissionError,
+    lastSubmission,
+    submitRecording,
+    setError: setSubmissionError,
+  } = usePracticeSubmission();
+
   const [expandedFeedback, setExpandedFeedback] = useState<{ [key: number]: boolean }>({});
-  
-  const recorderRef = useRef<AudioRecorder | null>(null);
-  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    const loadData = async () => {
-      await fetchQuestion();
-      await fetchPracticeHistory();
-    };
-    
-    loadData();
-    
-    // Initialize audio recorder
-    recorderRef.current = new AudioRecorder((state) => {
-      setIsRecording(state.isRecording || false);
-      setIsPaused(state.isPaused || false);
-      setRecordingTime(state.recordingTime || 0);
-      setAudioBlob(state.audioBlob || null);
-      setAudioUrl(state.audioUrl || null);
-      setAudioError(state.error || null);
+  // Combined error state
+  const audioError = recorderError || playbackError || submissionError || questionError;
+
+  // Handle submission with auto-play
+  const handleSubmitRecording = async () => {
+    if (!audioBlob || !question) return;
+
+    await submitRecording(audioBlob, question, async (session) => {
+      await refetchHistory();
+      // Auto-play the question after submission
+      setTimeout(() => {
+        if (question) {
+          speakQuestion(question.question_text, question.id);
+        }
+      }, 500);
     });
-
-    return () => {
-      recorderRef.current?.cleanup();
-      stopSpeaking();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [questionId]);
-
-  const fetchQuestion = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get(`/api/questions/${questionId}`);
-      setQuestion(response.data);
-    } catch (error) {
-      console.error('Error fetching question:', error);
-      setAudioError('Failed to load question');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchPracticeHistory = async () => {
-    try {
-      const response = await api.get(`/api/practice/question/${questionId}`);
-      setPracticeHistory(response.data);
-    } catch (error) {
-      console.error('Error fetching practice history:', error);
-    }
-  };
-
-  const handleSpeakQuestion = async () => {
-    if (!question) return;
-    setIsSpeaking(true);
-    stopSpeaking(); // Stop any ongoing speech
-    try {
-      await speakText(question.question_text, question.id);
-    } catch (error) {
-      console.error('Error speaking text:', error);
-      setAudioError('Failed to play question audio');
-    } finally {
-      setIsSpeaking(false);
-    }
-  };
-
-  const handleStartRecording = async () => {
-    try {
-      setAudioError(null);
-      await recorderRef.current?.startRecording();
-    } catch (error: any) {
-      setAudioError(error.message || 'Failed to start recording. Please check microphone permissions.');
-    }
-  };
-
-  const handleStopRecording = () => {
-    recorderRef.current?.stopRecording();
-  };
-
-  const handlePauseRecording = () => {
-    recorderRef.current?.pauseRecording();
-  };
-
-  const handleResumeRecording = () => {
-    recorderRef.current?.resumeRecording();
   };
 
   const handleResetRecording = () => {
-    recorderRef.current?.resetRecording();
-    setLastSubmission(null);
+    resetRecording();
+    setSubmissionError(null);
+  };
+
+  const handleSpeakQuestion = () => {
+    if (question) {
+      speakQuestion(question.question_text, question.id);
+    }
   };
 
   const handlePlayRecording = () => {
     if (audioUrl) {
-      const audio = new Audio(audioUrl);
-      audioPlayerRef.current = audio;
-      audio.onended = () => setIsPlaying(false);
-      audio.onerror = () => {
-        setIsPlaying(false);
-        setAudioError('Failed to play recording');
-      };
-      audio.play();
-      setIsPlaying(true);
+      playRecording(audioUrl);
     }
-  };
-
-  const handleStopPlayback = () => {
-    if (audioPlayerRef.current) {
-      audioPlayerRef.current.pause();
-      audioPlayerRef.current.currentTime = 0;
-      audioPlayerRef.current = null;
-      setIsPlaying(false);
-    }
-  };
-
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handleSubmitRecording = async () => {
-    if (!audioBlob || !question) return;
-
-    try {
-      setSubmitting(true);
-      setAnalyzing(true);
-      setAudioError(null);
-
-      // Create FormData for file upload
-      const formData = new FormData();
-      const audioFile = new File([audioBlob], 'recording.webm', { type: audioBlob.type });
-      formData.append('audio', audioFile);
-      formData.append('question_id', question.id.toString());
-      formData.append('part', question.part.toString());
-
-      // Submit to backend for analysis
-      const response = await api.post('/api/practice/analyze', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      const session: PracticeSession = response.data;
-      setLastSubmission(session);
-      
-      // Refresh practice history
-      await fetchPracticeHistory();
-      
-      // Auto-play the question after submission
-      setTimeout(() => {
-        handleSpeakQuestion();
-      }, 500);
-      
-    } catch (error: any) {
-      console.error('Error submitting recording:', error);
-      setAudioError(error.response?.data?.detail || 'Failed to analyze recording. Please try again.');
-    } finally {
-      setSubmitting(false);
-      setAnalyzing(false);
-    }
-  };
-
-  const getScoreColor = (score: number | null): string => {
-    if (!score) return 'text-gray-400';
-    if (score >= 7) return 'text-green-600';
-    if (score >= 6) return 'text-yellow-600';
-    return 'text-red-600';
   };
 
   const getOverallScore = (session: PracticeSession): number | null => {
-    if (!session.fluency_score || !session.vocabulary_score || 
-        !session.grammar_score || !session.pronunciation_score) {
-      return null;
-    }
-    const avg = (session.fluency_score + session.vocabulary_score + 
-                 session.grammar_score + session.pronunciation_score) / 4;
-    return Math.round(avg * 10) / 10;
+    return calculateOverallScore(
+      session.fluency_score,
+      session.vocabulary_score,
+      session.grammar_score,
+      session.pronunciation_score
+    );
   };
+
+  const loading = questionLoading;
 
   if (loading) {
     return (
@@ -268,13 +131,13 @@ export default function QuestionPracticePage() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-      
+
       {/* Main Content */}
       <main className="flex-1 p-8 overflow-y-auto">
         <div className="max-w-4xl mx-auto">
           {/* Breadcrumb */}
           <div className="mb-6 flex items-center gap-2 text-sm text-gray-600">
-            <button 
+            <button
               onClick={() => router.push('/practice')}
               className="hover:text-primary-600 transition-colors"
             >
@@ -366,7 +229,7 @@ export default function QuestionPracticePage() {
             <div className="flex flex-col items-center gap-4">
               {!isRecording && !audioBlob && (
                 <button
-                  onClick={handleStartRecording}
+                  onClick={startRecording}
                   disabled={submitting || analyzing}
                   className="px-8 py-4 bg-primary-600 text-white rounded-lg font-semibold text-lg hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center gap-3 shadow-lg"
                 >
@@ -378,14 +241,14 @@ export default function QuestionPracticePage() {
               {isRecording && (
                 <div className="flex items-center gap-4">
                   <button
-                    onClick={isPaused ? handleResumeRecording : handlePauseRecording}
+                    onClick={isPaused ? resumeRecording : pauseRecording}
                     className="px-6 py-3 bg-yellow-500 text-white rounded-lg font-medium hover:bg-yellow-600 transition-colors flex items-center gap-2"
                   >
                     {isPaused ? <Play size={20} /> : <Pause size={20} />}
                     <span>{isPaused ? 'Tiếp tục' : 'Tạm dừng'}</span>
                   </button>
                   <button
-                    onClick={handleStopRecording}
+                    onClick={stopRecording}
                     className="px-6 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors flex items-center gap-2"
                   >
                     <Square size={20} />
@@ -398,7 +261,7 @@ export default function QuestionPracticePage() {
                 <div className="w-full space-y-4">
                   <div className="flex items-center justify-center gap-4">
                   <button
-                    onClick={isPlaying ? handleStopPlayback : handlePlayRecording}
+                    onClick={isPlaying ? stopPlayback : handlePlayRecording}
                     disabled={!audioUrl}
                     className="p-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                   >
@@ -414,7 +277,7 @@ export default function QuestionPracticePage() {
                       <RotateCcw size={20} />
                     </button>
                   </div>
-                  
+
                   <button
                     onClick={handleSubmitRecording}
                     disabled={submitting || analyzing}
@@ -444,7 +307,7 @@ export default function QuestionPracticePage() {
                 <CheckCircle2 className="text-green-600" size={24} />
                 Kết quả phân tích
               </h2>
-              
+
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="text-center p-4 bg-blue-50 rounded-lg">
                   <div className="text-sm text-gray-600 mb-1">Trôi chảy</div>
@@ -487,8 +350,8 @@ export default function QuestionPracticePage() {
                     <div className="text-sm font-semibold text-gray-700">Bản ghi chép:</div>
                     {/* Transcription method indicator */}
                     <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 font-medium">
-                      {lastSubmission.transcription.includes('Google Cloud') ? '🔵 Google' : 
-                       lastSubmission.transcription.includes('Whisper') ? '🟢 Whisper' : 
+                      {lastSubmission.transcription.includes('Google Cloud') ? '🔵 Google' :
+                       lastSubmission.transcription.includes('Whisper') ? '🟢 Whisper' :
                        '🎤 Transcription'}
                     </span>
                   </div>
@@ -530,7 +393,7 @@ export default function QuestionPracticePage() {
                   const sessionDate = new Date(session.created_at);
                   const daysAgo = Math.floor((Date.now() - sessionDate.getTime()) / (1000 * 60 * 60 * 24));
                   const isExpanded = expandedFeedback[session.id] || false;
-                  
+
                   return (
                     <div key={session.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                       <div className="flex items-center justify-between mb-3">
@@ -551,8 +414,8 @@ export default function QuestionPracticePage() {
                           <button
                             onClick={() => {
                               if (session.audio_url) {
-                                const audioUrl = session.audio_url.startsWith('http') 
-                                  ? session.audio_url 
+                                const audioUrl = session.audio_url.startsWith('http')
+                                  ? session.audio_url
                                   : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${session.audio_url}`;
                                 const audio = new Audio(audioUrl);
                                 audio.play();
@@ -580,13 +443,13 @@ export default function QuestionPracticePage() {
                           )}
                         </div>
                       </div>
-                      
+
                       {session.transcription && (
                         <div className="text-sm text-gray-700 mb-2 line-clamp-2">
                           {session.transcription}
                         </div>
                       )}
-                      
+
                       <div className="flex gap-4 text-xs mb-3">
                         <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">Trôi chảy: {session.fluency_score?.toFixed(1) || 'N/A'}</span>
                         <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded">Từ vựng: {session.vocabulary_score?.toFixed(1) || 'N/A'}</span>
@@ -612,4 +475,3 @@ export default function QuestionPracticePage() {
     </div>
   );
 }
-

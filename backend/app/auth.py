@@ -7,16 +7,12 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models
-import os
+from app.core.config import settings
 import httpx
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
-
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
@@ -110,13 +106,13 @@ async def get_current_user_optional(
 
 async def verify_google_token(token: str) -> dict:
     """Verify Google ID token and return user info."""
-    GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+    GOOGLE_CLIENT_ID = settings.GOOGLE_CLIENT_ID
     if not GOOGLE_CLIENT_ID:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Google OAuth not configured. Please set GOOGLE_CLIENT_ID in your backend .env file. See README.md for setup instructions."
         )
-    
+
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             # Verify token with Google
@@ -125,14 +121,14 @@ async def verify_google_token(token: str) -> dict:
             )
             response.raise_for_status()
             user_info = response.json()
-            
+
             # Verify audience
-            if user_info.get("aud") != GOOGLE_CLIENT_ID:
+            if user_info.get("aud") != settings.GOOGLE_CLIENT_ID:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid token audience"
                 )
-            
+
             return user_info
     except httpx.HTTPStatusError as e:
         raise HTTPException(
@@ -157,4 +153,3 @@ def get_user_by_google_id(db: Session, google_id: str):
 
 def get_user_by_email(db: Session, email: str):
     return db.query(models.User).filter(models.User.email == email).first()
-
