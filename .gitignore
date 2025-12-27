@@ -170,3 +170,6 @@ backend/env/
 
 .cursor/
 __pycache__/
+
+# Documentation
+docs/
