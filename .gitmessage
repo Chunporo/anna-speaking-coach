@@ -1,0 +1,40 @@
+# <type>(<scope>): <subject>
+#
+# <body>
+#
+# <footer>
+
+# Type must be one of the following:
+#   feat:     A new feature
+#   fix:      A bug fix
+#   docs:     Documentation only changes
+#   style:    Changes that do not affect the meaning of the code
+#   refactor: A code change that neither fixes a bug nor adds a feature
+#   perf:     A code change that improves performance
+#   test:     Adding missing tests or correcting existing tests
+#   chore:    Changes to the build process or auxiliary tools
+#   ci:       Changes to CI configuration files and scripts
+#
+# Scope is optional and can be:
+#   backend, frontend, docs, config, etc.
+#
+# Subject should be:
+#   - Written in imperative mood ("Add feature" not "Added feature")
+#   - Lowercase (except for proper nouns)
+#   - No period at the end
+#   - Maximum 50 characters
+#
+# Body (optional):
+#   - Explain what and why vs. how
+#   - Wrap at 72 characters
+#   - Can include multiple paragraphs
+#
+# Footer (optional):
+#   - Reference issues: "Fixes #123" or "Closes #456"
+#   - Breaking changes: "BREAKING CHANGE: description"
+#
+# Examples:
+#   feat(backend): add user authentication endpoint
+#   fix(frontend): resolve audio playback issue
+#   docs: update environment setup guide
+#   refactor(backend): extract progress update utilities
