@@ -274,6 +274,7 @@ function PracticeContent() {
                 </label>
                 <div className="mt-5 flex justify-end">
                   <button
+                    type="submit"
                     disabled={saving || !draft.question_text.trim()}
                     className="btn-primary"
                   >

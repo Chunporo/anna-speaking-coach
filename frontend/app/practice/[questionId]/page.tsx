@@ -72,7 +72,7 @@ export default function QuestionPracticePage() {
       await fetchPracticeHistory();
     };
     
-    loadData();
+    void loadData();
     
     // Initialize audio recorder
     recorderRef.current = new AudioRecorder((state) => {
@@ -212,7 +212,7 @@ export default function QuestionPracticePage() {
       
       // Auto-play the question after submission
       setTimeout(() => {
-        handleSpeakQuestion();
+        void handleSpeakQuestion();
       }, 500);
       
     } catch (error: any) {
@@ -505,7 +505,7 @@ export default function QuestionPracticePage() {
               <button
                 onClick={() => {
                   handleResetRecording();
-                  handleSpeakQuestion();
+                  void handleSpeakQuestion();
                 }}
                 className="mt-4 w-full px-6 py-3 bg-primary-100 text-primary-700 rounded-lg font-medium hover:bg-primary-200 transition-colors"
               >
