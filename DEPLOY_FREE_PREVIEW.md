@@ -3,6 +3,38 @@
 This creates a fresh database. It does not migrate or delete Railway data.
 Use branch `review/anna-coach-integration` until the PR is reviewed.
 
+## No-card local backend with Quick Tunnel
+
+Keep the Vercel frontend and Supabase database/storage, and run the backend on
+your computer. From the repository root, run:
+
+```sh
+backend/.venv/bin/python backend/start_supabase_preview.py --project-ref lvazxakcbixwwzrlyibb
+```
+
+Enter the **Session pooler URI**, database password, and backend secret/service-role
+key at the hidden terminal prompts. The URI can retain `[YOUR-PASSWORD]`; the
+separate password prompt URL-encodes the actual password correctly. Input is
+kept in the backend process, never saved to `.env` or printed. Enter credentials
+again after restarting the process. A new signing key also requires signing in
+again; the Supabase data remains.
+
+The command verifies TLS database access, creates `recordings` as a private bucket
+if missing, and tests a real upload/download/delete cycle. It refuses an existing
+public bucket. It then applies migrations, seeds questions only if empty, and
+starts the API on `127.0.0.1:8014`. Keep the terminal open.
+
+Once it prints **Supabase preview ready**, start a Quick Tunnel pointing to port
+8014 and rebuild the Vercel preview with its public URL as `NEXT_PUBLIC_API_URL`.
+Retain the stable Vercel alias already listed in `ALLOWED_ORIGINS`. Keep the old
+preview running until the new connection is verified. Quick Tunnel URLs can
+change on restart; update Vercel's build setting and redeploy when that happens.
+
+This setup does not read developer `.env` files. Optional AI credentials can be
+provided through the launching terminal's environment. Without them, speech or
+feedback functionality remains unavailable as described below. Your computer,
+backend, and tunnel must stay online.
+
 ## 1. Supabase
 
 1. Create a **Free** project named `anna-speaking-coach`, preferably in Singapore
