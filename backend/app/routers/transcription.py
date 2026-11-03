@@ -1,3 +1,5 @@
+from app.utils.rate_limit import ai_user
+from app.utils.uploads import save_audio
 """
 Transcription router - handles speech-to-text transcription
 Supports Google Cloud Speech-to-Text and Whisper fallback
@@ -38,7 +40,7 @@ async def transcribe_audio(
     audio: UploadFile = File(...),
     use_google: bool = True,
     language_code: str = "en-US",
-    token: Optional[str] = Depends(oauth2_scheme_optional)
+    current_user: models.User = Depends(ai_user)
 ):
     """
     Transcribe audio file using Google Cloud Speech-to-Text (primary) or Whisper (fallback)
@@ -53,17 +55,17 @@ async def transcribe_audio(
         JSON response with transcription and method used
     """
     # Save audio file temporarily
-    file_extension = os.path.splitext(audio.filename)[1] or ".webm"
+    file_extension = os.path.splitext(audio.filename or "")[1] or ".webm"
     filename = f"{uuid.uuid4()}{file_extension}"
     file_path = UPLOAD_DIR / filename
     
     try:
         # Save uploaded file
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(audio.file, buffer)
+        import asyncio
+        await asyncio.to_thread(save_audio, audio, file_path)
         
-        transcription, method = transcribe_with_fallback(
-            file_path,
+        transcription, method = await asyncio.to_thread(
+            transcribe_with_fallback, file_path,
             language_code=language_code,
             use_google=use_google
         )
@@ -123,7 +125,7 @@ async def get_transcription_status():
             "error": google_error
         },
         "whisper": {
-            "available": True,  # Whisper is always available (local)
-            "error": None
+            "available": bool(shutil.which("whisper") or shutil.which("mamba")),
+            "error": None if (shutil.which("whisper") or shutil.which("mamba")) else "Local Whisper is not installed"
         }
     })

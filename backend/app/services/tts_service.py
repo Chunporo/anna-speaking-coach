@@ -4,6 +4,7 @@ Text-to-Speech service using ParlerTTS in mamba environment
 import subprocess
 import os
 import hashlib
+import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -96,7 +97,9 @@ sf.write({output_path_repr}, audio_arr, model.config.sampling_rate)
 """
         
         # Write Python script to temporary file
-        script_path = TTS_OUTPUT_DIR / "temp_tts_script.py"
+        handle = tempfile.NamedTemporaryFile(suffix=".py", delete=False)
+        handle.close()
+        script_path = Path(handle.name)
         with open(script_path, 'w', encoding='utf-8') as f:
             f.write(python_script)
         
@@ -105,19 +108,14 @@ sf.write({output_path_repr}, audio_arr, model.config.sampling_rate)
         # Run the script in mamba environment
         tts_cmd = f"""bash -c "source '{mamba_script}' && mamba activate {MAMBA_ENV} && python '{script_path_str}'" """
         
-        result = subprocess.run(
-            tts_cmd,
-            shell=True,
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=120  # 2 minute timeout
-        )
-        
-        # Clean up temporary script
-        if script_path.exists():
-            script_path.unlink()
-        
+        try:
+            result = subprocess.run(
+                ['mamba', 'run', '-n', MAMBA_ENV, 'python', str(script_path)],
+                capture_output=True, text=True, timeout=120,
+            )
+        finally:
+            script_path.unlink(missing_ok=True)
+
         if result.returncode != 0:
             error_msg = result.stderr or result.stdout
             raise Exception(f"TTS generation failed: {error_msg}")
@@ -148,7 +146,7 @@ def get_tts_audio_url(text: str, question_id: Optional[int] = None) -> str:
         URL path to the audio file
     """
     if question_id:
-        output_filename = f"question_{question_id}"
+        output_filename = f"question_{question_id}_{hashlib.sha256(text.encode()).hexdigest()[:12]}"
     else:
         output_filename = None
     

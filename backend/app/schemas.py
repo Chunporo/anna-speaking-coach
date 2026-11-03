@@ -6,8 +6,8 @@ from decimal import Decimal
 
 # User schemas
 class UserBase(BaseModel):
-    username: str
-    email: EmailStr
+    username: str = Field(..., min_length=3, max_length=50)
+    email: EmailStr = Field(..., max_length=100)
 
 
 class UserCreate(UserBase):
@@ -25,7 +25,7 @@ class UserResponse(UserBase):
 
 # Question schemas
 class QuestionBase(BaseModel):
-    part: int
+    part: int = Field(..., ge=1, le=3)
     topic: str
     question_text: str
 
@@ -43,7 +43,7 @@ class QuestionResponse(QuestionBase):
 
 
 class UserQuestionCreate(BaseModel):
-    part: int
+    part: int = Field(..., ge=1, le=3)
     topic: Optional[str] = None
     question_text: str
 
@@ -61,7 +61,7 @@ class UserQuestionResponse(UserQuestionCreate):
 class PracticeSessionCreate(BaseModel):
     question_id: Optional[int] = None
     user_question_id: Optional[int] = None
-    part: int
+    part: int = Field(..., ge=1, le=3)
     audio_url: Optional[str] = None
     transcription: Optional[str] = None
 
@@ -71,7 +71,7 @@ class PracticeSessionResponse(BaseModel):
     user_id: int
     question_id: Optional[int]
     user_question_id: Optional[int]
-    part: int
+    part: int = Field(..., ge=1, le=3)
     audio_url: Optional[str]
     transcription: Optional[str]
     fluency_score: Optional[Decimal]
@@ -93,7 +93,7 @@ class FeedbackHistoryItem(BaseModel):
     """Condensed feedback item for history list"""
     id: int
     question_id: Optional[int]
-    part: int
+    part: int = Field(..., ge=1, le=3)
     overall_band: Optional[Decimal]
     fluency_score: Optional[Decimal]
     vocabulary_score: Optional[Decimal]
@@ -110,7 +110,7 @@ class FeedbackDetailResponse(BaseModel):
     id: int
     question_id: Optional[int]
     question_text: Optional[str]
-    part: int
+    part: int = Field(..., ge=1, le=3)
     transcription: Optional[str]
     audio_url: Optional[str]
     overall_band: Optional[Decimal]
@@ -130,7 +130,7 @@ class FeedbackDetailResponse(BaseModel):
 
 # Mock test schemas
 class MockTestCreate(BaseModel):
-    test_type: str  # 'PART1', 'PART2', 'PART3', 'FULL'
+    test_type: str = Field(..., pattern=r'^(PART1|PART2|PART3|FULL)$')
 
 
 class MockTestResponse(BaseModel):
@@ -177,7 +177,7 @@ class ActivityCalendarResponse(BaseModel):
 
 
 class PartProgressResponse(BaseModel):
-    part: int
+    part: int = Field(..., ge=1, le=3)
     completed_count: int
     total_count: int
 

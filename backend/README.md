@@ -1,44 +1,23 @@
-# IELTS Speaking Practice - Backend API
+# IELTS Speaking Practice API
 
-FastAPI backend for the IELTS Speaking Practice platform.
+FastAPI, SQLAlchemy and PostgreSQL backend. Python 3.11+ and FFmpeg/ffprobe are required.
 
-## Setup
+From this directory:
 
-1. Install dependencies:
-```bash
+```sh
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
-```
-
-2. Set up PostgreSQL database:
-```bash
-# Create database
-createdb ielts_speaking
-
-# Run schema
-psql ielts_speaking < database/schema.sql
-```
-
-3. Create `.env` file:
-```bash
 cp .env.example .env
-# Edit .env with your database credentials
 ```
 
-4. Run the server:
-```bash
+Configure `DATABASE_URL` in `.env` and create that PostgreSQL database before continuing:
+
+```sh
+python database/init_db.py --seed
 uvicorn app.main:app --reload --port 8000
-```uvicorn app.main:app --reload --port 8000
-ttp://localhost:8000/redoc
+```
 
-## Endpoints
+On existing databases, omit `--seed`; `init_db.py` applies versioned Alembic migrations. API documentation is at http://localhost:8000/docs and readiness at `/api/health`.
 
-- `/api/auth/register` - Register new user
-- `/api/auth/login` - Login
-- `/api/auth/me` - Get current user
-- `/api/questions/` - Get questions
-- `/api/questions/user-questions` - Get/create user questions
-- `/api/practice/` - Create/get practice sessions
-- `/api/mock-test/` - Create/get mock tests
-- `/api/progress/daily` - Get daily progress
-- `/api/progress/streak` - Get streak info
-- `/api/progress/part-progress` - Get part progress
+See [OPERATIONS.md](OPERATIONS.md) for production configuration, migrations, optional AI services, private recordings, request limits, and retention. The shared question APIs are public; practice, mock tests, feedback, progress and recording APIs require Bearer authentication.

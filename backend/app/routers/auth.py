@@ -76,6 +76,9 @@ async def google_auth(
     email = google_user_info.get("email")
     name = google_user_info.get("name", "")
     
+    if google_user_info.get("email_verified") not in (True, "true"):
+        raise HTTPException(status_code=401, detail="Google email must be verified")
+
     if not google_id or not email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

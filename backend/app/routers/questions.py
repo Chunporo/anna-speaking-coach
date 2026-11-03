@@ -30,7 +30,7 @@ def get_topics(part: Optional[int] = Query(None, ge=1, le=3), db: Session = Depe
     return [topic[0] for topic in query.all()]
 
 
-@router.get("/{question_id}", response_model=schemas.QuestionResponse)
+@router.get("/{question_id:int}", response_model=schemas.QuestionResponse)
 def get_question(
     question_id: int,
     db: Session = Depends(get_db)
@@ -44,6 +44,7 @@ def get_question(
 @router.get("/{question_id}/audio")
 def get_question_audio(
     question_id: int,
+    current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -104,3 +105,11 @@ def delete_user_question(
     db.commit()
     return {"message": "Question deleted"}
 
+
+
+@router.get('/user-questions/{question_id}', response_model=schemas.UserQuestionResponse)
+def get_user_question(question_id: int, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    question = db.query(models.UserQuestion).filter_by(id=question_id, user_id=current_user.id).first()
+    if not question:
+        raise HTTPException(status_code=404, detail='Question not found')
+    return question

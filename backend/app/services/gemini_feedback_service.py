@@ -27,7 +27,7 @@ class IELTSFeedback:
     fluency_score: Decimal
     vocabulary_score: Decimal
     grammar_score: Decimal
-    pronunciation_score: Decimal
+    pronunciation_score: Optional[Decimal]
     overall_band: Decimal
     feedback: str
     strengths: list
@@ -206,19 +206,30 @@ async def get_ielts_feedback(
     
     try:
         # Generate response using Gemini
-        response = model.generate_content(prompt)
+        import asyncio
+        response = await asyncio.to_thread(model.generate_content, prompt, request_options={"timeout": 60})
         response_text = response.text
         
         # Parse the JSON response
         feedback_data = parse_gemini_response(response_text)
         
+        fields = ['fluency_score', 'vocabulary_score', 'grammar_score']
+        for field in fields:
+            value = Decimal(str(feedback_data[field]))
+            if not value.is_finite() or not 0 <= value <= 9 or value * 2 != int(value * 2):
+                raise ValueError('Invalid IELTS score')
+        for field in ['strengths', 'improvements']:
+            if not isinstance(feedback_data.get(field), list) or not all(isinstance(item, str) for item in feedback_data[field]):
+                raise ValueError('Invalid feedback list')
+        if not isinstance(feedback_data.get('sample_corrections'), list) or not all(isinstance(item, dict) for item in feedback_data['sample_corrections']):
+            raise ValueError('Invalid corrections')
         # Create IELTSFeedback object
         return IELTSFeedback(
             fluency_score=Decimal(str(feedback_data.get("fluency_score", 5.0))),
             vocabulary_score=Decimal(str(feedback_data.get("vocabulary_score", 5.0))),
             grammar_score=Decimal(str(feedback_data.get("grammar_score", 5.0))),
-            pronunciation_score=Decimal(str(feedback_data.get("pronunciation_score", 5.0))),
-            overall_band=Decimal(str(feedback_data.get("overall_band", 5.0))),
+            pronunciation_score=None,
+            overall_band=(sum(Decimal(str(feedback_data[field])) for field in fields) / 3 * 2).quantize(Decimal("1")) / 2,
             feedback=feedback_data.get("feedback", ""),
             strengths=feedback_data.get("strengths", []),
             improvements=feedback_data.get("improvements", []),
@@ -236,12 +247,12 @@ def format_feedback_text(feedback: IELTSFeedback) -> str:
     
     # Tổng thể (Overall)
     sections.append(f"## 📊 Tổng thể\n")
-    sections.append(f"**Điểm Band tổng: {feedback.overall_band}**\n")
+    sections.append(f"**Ước tính từ văn bản (không gồm phát âm): {feedback.overall_band}**\n")
     sections.append("### Điểm theo tiêu chí")
     sections.append(f"- **Độ trôi chảy và Mạch lạc (FC)**: {feedback.fluency_score}")
     sections.append(f"- **Vốn từ vựng (LR)**: {feedback.vocabulary_score}")
     sections.append(f"- **Ngữ pháp (GRA)**: {feedback.grammar_score}")
-    sections.append(f"- **Phát âm (P)**: {feedback.pronunciation_score}")
+    sections.append("- **Phát âm (P)**: Cần phân tích âm thanh; không chấm điểm từ bản ghi văn bản.")
     sections.append("")
     
     # Main feedback - Tổng thể

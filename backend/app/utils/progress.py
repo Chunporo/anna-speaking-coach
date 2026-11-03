@@ -66,8 +66,14 @@ def update_part_progress(db: Session, user_id: int, part: int) -> models.PartPro
         models.PartProgress.part == part
     ).first()
 
+    completed_count = db.query(func.count(func.distinct(models.PracticeSession.question_id))).filter(
+        models.PracticeSession.user_id == user_id,
+        models.PracticeSession.part == part,
+        models.PracticeSession.audio_url.isnot(None),
+    ).scalar() or 0
+
     if part_progress:
-        part_progress.completed_count += 1
+        part_progress.completed_count = completed_count
     else:
         # Get total count for this part
         total_count = db.query(func.count(models.Question.id)).filter(
@@ -76,7 +82,7 @@ def update_part_progress(db: Session, user_id: int, part: int) -> models.PartPro
         part_progress = models.PartProgress(
             user_id=user_id,
             part=part,
-            completed_count=1,
+            completed_count=completed_count,
             total_count=total_count
         )
         db.add(part_progress)
@@ -129,7 +135,13 @@ def update_all_progress(db: Session, user_id: int, part: int, today: date = None
     if today is None:
         today = date.today()
 
+    # Serialize updates for a user, including first-time progress row creation.
+    db.query(models.User).filter(models.User.id == user_id).with_for_update().one()
+    db.flush()
     update_daily_progress(db, user_id, today)
     update_activity_calendar(db, user_id, today)
     update_part_progress(db, user_id, part)
     update_streak(db, user_id, today)
+
+
+

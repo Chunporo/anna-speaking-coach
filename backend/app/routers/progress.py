@@ -15,6 +15,7 @@ def get_daily_progress(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
+    db.query(models.User).filter_by(id=current_user.id).with_for_update().one()
     today = date.today()
     daily_progress = db.query(models.DailyProgress).filter(
         models.DailyProgress.user_id == current_user.id,
@@ -26,7 +27,7 @@ def get_daily_progress(
             user_id=current_user.id,
             date=today,
             practice_count=0,
-            target_count=10
+            target_count=25
         )
         db.add(daily_progress)
         db.commit()
@@ -40,6 +41,7 @@ def get_streak(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
+    db.query(models.User).filter_by(id=current_user.id).with_for_update().one()
     streak = db.query(models.Streak).filter(
         models.Streak.user_id == current_user.id
     ).first()
@@ -50,6 +52,8 @@ def get_streak(
         db.commit()
         db.refresh(streak)
     
+    if streak.last_activity_date and (date.today() - streak.last_activity_date).days > 1:
+        streak.current_streak = 0
     return streak
 
 
@@ -73,35 +77,29 @@ def get_part_progress(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    part_progresses = db.query(models.PartProgress).filter(
-        models.PartProgress.user_id == current_user.id
-    ).all()
-    
-    # If no progress exists, initialize with totals
-    if not part_progresses:
-        for part in [1, 2, 3]:
-            total_count = db.query(func.count(models.Question.id)).filter(
-                models.Question.part == part
-            ).scalar() or 0
-            part_progress = models.PartProgress(
-                user_id=current_user.id,
-                part=part,
-                completed_count=0,
-                total_count=total_count
-            )
-            db.add(part_progress)
-        db.commit()
-        part_progresses = db.query(models.PartProgress).filter(
-            models.PartProgress.user_id == current_user.id
-        ).all()
-    
-    return part_progresses
+    db.query(models.User).filter_by(id=current_user.id).with_for_update().one()
+    results = []
+    for part in [1, 2, 3]:
+        row = db.query(models.PartProgress).filter_by(user_id=current_user.id, part=part).first()
+        total = db.query(func.count(models.Question.id)).filter_by(part=part).scalar() or 0
+        completed = db.query(func.count(func.distinct(models.PracticeSession.question_id))).filter(
+            models.PracticeSession.user_id == current_user.id,
+            models.PracticeSession.part == part,
+            models.PracticeSession.audio_url.isnot(None),
+        ).scalar() or 0
+        if row is None:
+            row = models.PartProgress(user_id=current_user.id, part=part)
+            db.add(row)
+        row.total_count, row.completed_count = total, completed
+        results.append(row)
+    db.commit()
+    return results
 
 
 @router.get("/streak-analytics", response_model=schemas.StreakAnalyticsResponse)
 def get_streak_analytics(
-    year: int = Query(None),
-    month: int = Query(None),
+    year: int = Query(None, ge=1970, le=9999),
+    month: int = Query(None, ge=1, le=12),
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -114,7 +112,7 @@ def get_streak_analytics(
     streak = db.query(models.Streak).filter(
         models.Streak.user_id == current_user.id
     ).first()
-    current_streak = streak.current_streak if streak else 0
+    current_streak = streak.current_streak if streak and streak.last_activity_date and (today - streak.last_activity_date).days <= 1 else 0
     
     # Calculate calendar days for the month
     first_day = date(target_year, target_month, 1)
@@ -236,7 +234,8 @@ def get_streak_analytics(
     # Monthly progress (last 12 months)
     monthly_progress = []
     for i in range(12):
-        check_date = today - timedelta(days=30 * i)
+        month_index = today.year * 12 + today.month - 1 - i
+        check_date = date(month_index // 12, month_index % 12 + 1, 1)
         month_start = date(check_date.year, check_date.month, 1)
         month_end = date(check_date.year, check_date.month, monthrange(check_date.year, check_date.month)[1])
         
@@ -254,14 +253,17 @@ def get_streak_analytics(
     
     monthly_progress.reverse()  # Oldest to newest
     
-    # Time of day (mock data for now - would need to track hour in practice sessions)
-    time_of_day = [
-        schemas.TimeOfDayItem(period="Morning", total_practice=0),
-        schemas.TimeOfDayItem(period="Afternoon", total_practice=0),
-        schemas.TimeOfDayItem(period="Evening", total_practice=0),
-        schemas.TimeOfDayItem(period="Night", total_practice=total_completions),  # Placeholder
-    ]
-    
+    # Aggregate actual submission hours in UTC (database timestamps).
+    periods = {'Morning': 0, 'Afternoon': 0, 'Evening': 0, 'Night': 0}
+    hours = db.query(extract('hour', models.PracticeSession.created_at), func.count()).filter(
+        models.PracticeSession.user_id == current_user.id,
+        models.PracticeSession.audio_url.isnot(None),
+    ).group_by(extract('hour', models.PracticeSession.created_at)).all()
+    for hour, count in hours:
+        period = 'Morning' if 6 <= hour < 12 else 'Afternoon' if 12 <= hour < 18 else 'Evening' if 18 <= hour < 22 else 'Night'
+        periods[period] += count
+    time_of_day = [schemas.TimeOfDayItem(period=period, total_practice=count) for period, count in periods.items()]
+
     return schemas.StreakAnalyticsResponse(
         current_streak=current_streak,
         off_days=off_days,

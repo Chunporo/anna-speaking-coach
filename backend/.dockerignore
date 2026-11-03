@@ -48,3 +48,5 @@ build
 *.md
 !README.md
 
+
+uploads/

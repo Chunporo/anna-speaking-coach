@@ -13,6 +13,13 @@ load_dotenv()
 class Settings:
     """Application settings loaded from environment variables"""
 
+    def __init__(self):
+        if self.is_production:
+            if len(self.SECRET_KEY) < 32 or self.SECRET_KEY.startswith(("your-", "change-")):
+                raise ValueError("Production requires a random SECRET_KEY of at least 32 characters")
+            if not self.allowed_origins or "*" in self.allowed_origins:
+                raise ValueError("Production requires explicit ALLOWED_ORIGINS")
+
     # Application
     APP_NAME: str = "IELTS Speaking Practice API"
     APP_VERSION: str = "1.0.0"
@@ -76,3 +83,6 @@ class Settings:
 
 # Global settings instance
 settings = Settings()
+
+
+

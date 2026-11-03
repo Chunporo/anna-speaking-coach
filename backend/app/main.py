@@ -10,8 +10,9 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION)
 
 # Mount static files for audio uploads
-if settings.UPLOAD_DIR.parent.exists():
-    app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+tts_dir = settings.UPLOAD_DIR.parent / "tts"
+tts_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads/tts", StaticFiles(directory=str(tts_dir)), name="tts")
 
 # Setup CORS middleware
 setup_cors_middleware(app)
@@ -38,7 +39,15 @@ async def root():
 
 
 @app.get("/api/health")
-async def health():
+def health():
+    from app.database import SessionLocal
+    from sqlalchemy import text
+    from fastapi import HTTPException
+    try:
+        with SessionLocal() as db:
+            db.execute(text("SELECT 1"))
+    except Exception:
+        raise HTTPException(status_code=503, detail="Database unavailable")
     return {"status": "healthy"}
 
 

@@ -48,6 +48,10 @@ CREATE TABLE practice_sessions (
     grammar_score DECIMAL(3, 2),
     pronunciation_score DECIMAL(3, 2),
     feedback TEXT,
+    overall_band DECIMAL(3, 2),
+    feedback_strengths TEXT,
+    feedback_improvements TEXT,
+    feedback_corrections TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -126,5 +130,12 @@ CREATE INDEX idx_practice_sessions_created_at ON practice_sessions(created_at);
 CREATE INDEX idx_mock_tests_user_id ON mock_tests(user_id);
 CREATE INDEX idx_questions_part_topic ON questions(part, topic);
 CREATE INDEX idx_activity_calendar_user_date ON activity_calendar(user_id, date);
-CREATE INDEX idx_daily_progress_user_date ON daily_progress(user_id, date);
 
+
+
+-- Shared fixed-window AI request limit; also installed by migration 0003.
+CREATE TABLE ai_request_limits (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    window_started TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    request_count INTEGER NOT NULL DEFAULT 1 CHECK (request_count > 0)
+);

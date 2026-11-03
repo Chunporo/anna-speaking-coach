@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Text, DECIMAL, Date, ForeignKey, TIMESTAMP, CheckConstraint
+from sqlalchemy import Column, Integer, String, Boolean, Text, DECIMAL, Date, ForeignKey, TIMESTAMP, CheckConstraint, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -117,7 +117,8 @@ class DailyProgress(Base):
     target_count = Column(Integer, default=25)
 
     __table_args__ = (
-        {'sqlite_autoincrement': True},
+        UniqueConstraint("user_id", "date"),
+        {"sqlite_autoincrement": True},
     )
 
 
@@ -142,7 +143,8 @@ class ActivityCalendar(Base):
     practice_count = Column(Integer, default=0)
 
     __table_args__ = (
-        {'sqlite_autoincrement': True},
+        UniqueConstraint("user_id", "date"),
+        {"sqlite_autoincrement": True},
     )
 
 
@@ -158,6 +160,17 @@ class PartProgress(Base):
 
     __table_args__ = (
         CheckConstraint('part IN (1, 2, 3)', name='check_part_progress_part'),
+        UniqueConstraint('user_id', 'part'),
         {'sqlite_autoincrement': True},
     )
 
+
+
+class AIRequestLimit(Base):
+    __tablename__ = 'ai_request_limits'
+
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
+    window_started = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+    request_count = Column(Integer, nullable=False, server_default='1')
+
+    __table_args__ = (CheckConstraint('request_count > 0', name='check_ai_request_count'),)

@@ -7,11 +7,11 @@ from decimal import Decimal
 IELTS_PARTS = [1, 2, 3]
 
 # Default Scores
-DEFAULT_FLUENCY_SCORE = Decimal("5.0")
-DEFAULT_VOCABULARY_SCORE = Decimal("5.0")
-DEFAULT_GRAMMAR_SCORE = Decimal("5.0")
-DEFAULT_PRONUNCIATION_SCORE = Decimal("5.0")
-DEFAULT_OVERALL_BAND = Decimal("5.0")
+DEFAULT_FLUENCY_SCORE = None
+DEFAULT_VOCABULARY_SCORE = None
+DEFAULT_GRAMMAR_SCORE = None
+DEFAULT_PRONUNCIATION_SCORE = None
+DEFAULT_OVERALL_BAND = None
 
 # Transcription Methods
 TRANSCRIPTION_METHOD_GOOGLE = "google"
@@ -42,3 +42,6 @@ FEEDBACK_ERROR_TEMPLATE = """⚠️ **Lỗi tạo phản hồi**
 Đã xảy ra lỗi khi tạo phản hồi: {error}
 
 Bản ghi của bạn đã được lưu. Vui lòng thử lại sau."""
+
+
+

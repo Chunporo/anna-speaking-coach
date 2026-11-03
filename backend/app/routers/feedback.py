@@ -1,9 +1,10 @@
+from app.utils.rate_limit import ai_user
 """
 Feedback router - handles IELTS feedback generation endpoints
 """
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 import os
 import logging
@@ -22,8 +23,8 @@ logger = logging.getLogger(__name__)
 
 class FeedbackRequest(BaseModel):
     """Request model for feedback generation"""
-    transcription: str
-    question: str
+    transcription: str = Field(..., min_length=10, max_length=20000)
+    question: str = Field(..., min_length=1, max_length=5000)
     part: int = 1
 
 
@@ -32,7 +33,7 @@ class FeedbackResponse(BaseModel):
     fluency_score: float
     vocabulary_score: float
     grammar_score: float
-    pronunciation_score: float
+    pronunciation_score: Optional[float]
     overall_band: float
     feedback: str
     strengths: list
@@ -76,7 +77,7 @@ async def get_feedback_status():
 @router.post("/analyze", response_model=FeedbackResponse)
 async def analyze_transcription(
     request: FeedbackRequest,
-    current_user: models.User = Depends(auth.get_current_user)
+    current_user: models.User = Depends(ai_user)
 ):
     """
     Analyze a transcription and get IELTS examiner feedback
@@ -120,7 +121,7 @@ async def analyze_transcription(
             fluency_score=float(ielts_feedback.fluency_score),
             vocabulary_score=float(ielts_feedback.vocabulary_score),
             grammar_score=float(ielts_feedback.grammar_score),
-            pronunciation_score=float(ielts_feedback.pronunciation_score),
+            pronunciation_score=float(ielts_feedback.pronunciation_score) if ielts_feedback.pronunciation_score is not None else None,
             overall_band=float(ielts_feedback.overall_band),
             feedback=format_feedback_text(ielts_feedback),
             strengths=ielts_feedback.strengths,

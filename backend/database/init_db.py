@@ -1,57 +1,25 @@
-"""
-Database initialization script
-Run this after creating the database to set up tables and seed data
-"""
-import os
-import sys
+"""Initialize schema through versioned migrations; optionally load question seeds."""
+import argparse
+from pathlib import Path
+from alembic import command
+from alembic.config import Config
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
+import os
 
-load_dotenv()
+ROOT = Path(__file__).resolve().parents[1]
+load_dotenv(ROOT / '.env')
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://user:password@localhost:5432/ielts_speaking"
-)
+def init_database(seed=False):
+    command.upgrade(Config(str(ROOT / 'alembic.ini')), 'head')
+    if seed:
+        engine = create_engine(os.environ['DATABASE_URL'])
+        with engine.begin() as connection:
+            if connection.execute(text('SELECT count(*) FROM questions')).scalar():
+                raise RuntimeError('Questions already exist; refusing to duplicate seed data')
+            connection.exec_driver_sql((ROOT / 'database/seed_data.sql').read_text())
 
-def init_database():
-    engine = create_engine(DATABASE_URL)
-    
-    # Read and execute schema
-    with open('database/schema.sql', 'r') as f:
-        schema_sql = f.read()
-    
-    with engine.connect() as conn:
-        # Split by semicolons and execute each statement
-        statements = schema_sql.split(';')
-        for statement in statements:
-            statement = statement.strip()
-            if statement:
-                try:
-                    conn.execute(text(statement))
-                except Exception as e:
-                    print(f"Warning: {e}")
-        conn.commit()
-    
-    print("Database schema created successfully!")
-    
-    # Read and execute seed data
-    with open('database/seed_data.sql', 'r') as f:
-        seed_sql = f.read()
-    
-    with engine.connect() as conn:
-        statements = seed_sql.split(';')
-        for statement in statements:
-            statement = statement.strip()
-            if statement:
-                try:
-                    conn.execute(text(statement))
-                except Exception as e:
-                    print(f"Warning: {e}")
-        conn.commit()
-    
-    print("Seed data inserted successfully!")
-
-if __name__ == "__main__":
-    init_database()
-
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--seed', action='store_true')
+    init_database(parser.parse_args().seed)

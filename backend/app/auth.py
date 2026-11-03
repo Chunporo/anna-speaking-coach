@@ -15,6 +15,7 @@ ALGORITHM = settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="api/auth/login", auto_error=False)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -31,7 +32,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     """Hash a password using bcrypt."""
     # Truncate password to 72 bytes (bcrypt limit)
-    password_bytes = password.encode('utf-8')[:72]
+    password_bytes = password.encode('utf-8')
+    if len(password_bytes) > 72:
+        raise HTTPException(status_code=422, detail='Password must be at most 72 UTF-8 bytes')
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(password_bytes, salt)
     return hashed.decode('utf-8')
@@ -87,7 +90,7 @@ async def get_current_user(
 
 
 async def get_current_user_optional(
-    token: Optional[str] = Depends(oauth2_scheme),
+    token: Optional[str] = Depends(oauth2_scheme_optional),
     db: Session = Depends(get_db)
 ) -> Optional[models.User]:
     """Get current user if token is provided, otherwise return None"""
