@@ -14,6 +14,16 @@ class Settings:
     """Application settings loaded from environment variables"""
 
     def __init__(self):
+        if self.AUDIO_STORAGE not in {"local", "supabase"}:
+            raise ValueError("AUDIO_STORAGE must be local or supabase")
+        if self.AUDIO_STORAGE == "supabase":
+            from urllib.parse import urlsplit
+            url = urlsplit(self.SUPABASE_URL)
+            if (url.scheme != "https" or not url.hostname or url.username
+                    or url.password or url.path not in {"", "/"} or url.query or url.fragment):
+                raise ValueError("SUPABASE_URL must be an HTTPS project origin")
+            if not self.SUPABASE_SERVICE_ROLE_KEY or not self.SUPABASE_AUDIO_BUCKET:
+                raise ValueError("Supabase audio storage requires a server key and private bucket")
         if self.is_production:
             if len(self.SECRET_KEY) < 32 or self.SECRET_KEY.startswith(("your-", "change-")):
                 raise ValueError("Production requires a random SECRET_KEY of at least 32 characters")
@@ -47,6 +57,10 @@ class Settings:
     # File Uploads
     UPLOAD_DIR: Path = Path("uploads/audio")
     UPLOAD_BASE_URL: str = "/uploads/audio"
+    AUDIO_STORAGE: str = os.getenv("AUDIO_STORAGE", "local")
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "").rstrip("/")
+    SUPABASE_SERVICE_ROLE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+    SUPABASE_AUDIO_BUCKET: str = os.getenv("SUPABASE_AUDIO_BUCKET", "recordings")
 
     # AI Services
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")

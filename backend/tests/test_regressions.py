@@ -46,6 +46,70 @@ class FlowTests(unittest.TestCase):
         self.assertEqual(self.client.post('/api/transcription/transcribe').status_code, 401)
         self.assertEqual(self.client.get('/uploads/audio/private.webm').status_code, 404)
 
+    def test_application_tables_deny_direct_anonymous_database_access(self):
+        from sqlalchemy import text
+        with SessionLocal() as db:
+            tables = db.execute(text("SELECT relname FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relrowsecurity")).scalars().all()
+        self.assertTrue({'users', 'questions', 'user_questions', 'practice_sessions',
+            'mock_tests', 'mock_test_questions', 'daily_progress', 'streaks',
+            'activity_calendar', 'part_progress', 'ai_request_limits'}.issubset(tables))
+
+    def test_remote_storage_failure_does_not_create_history_or_progress(self):
+        from fastapi import HTTPException
+        from pathlib import Path
+        buffer = io.BytesIO()
+        with wave.open(buffer, 'wb') as audio:
+            audio.setnchannels(1); audio.setsampwidth(2); audio.setframerate(16000)
+            audio.writeframes(b'\0\0' * 16000)
+        stored_paths = []
+        def fail_storage(path):
+            stored_paths.append(path)
+            raise HTTPException(status_code=503, detail='Recording storage unavailable; please try again')
+        with patch('app.services.google_speech_service.transcribe_with_fallback', return_value=('A sufficiently long spoken answer.', 'google')), patch('app.routers.practice.get_ielts_feedback', new=AsyncMock(return_value=None)), patch('app.routers.practice.persist_recording', side_effect=fail_storage):
+            response = self.client.post('/api/practice/analyze', headers=self.headers,
+                data={'question_id': self.question['id'], 'part': self.question['part']},
+                files={'audio': ('answer.wav', buffer.getvalue(), 'audio/wav')})
+        self.assertEqual(response.status_code, 503, response.text)
+        self.assertTrue(stored_paths)
+        self.assertFalse(Path(stored_paths[0]).exists())
+        self.assertEqual(self.client.get('/api/progress/daily', headers=self.headers).json()['practice_count'], 0)
+        with SessionLocal() as db:
+            self.assertEqual(db.query(models.PracticeSession).filter_by(user_id=self.user_id).count(), 0)
+
+    def test_remote_recording_lifecycle_and_commit_failure_cleanup(self):
+        from app.core.config import settings
+        from fastapi.responses import Response
+        buffer = io.BytesIO()
+        with wave.open(buffer, 'wb') as audio:
+            audio.setnchannels(1); audio.setsampwidth(2); audio.setframerate(16000)
+            audio.writeframes(b'\0\0' * 16000)
+        stored_paths = []
+        def submit():
+            return self.client.post('/api/practice/analyze', headers=self.headers,
+                data={'question_id': self.question['id'], 'part': self.question['part']},
+                files={'audio': ('answer.wav', buffer.getvalue(), 'audio/wav')})
+        with patch.object(settings, 'AUDIO_STORAGE', 'supabase'), patch('app.services.google_speech_service.transcribe_with_fallback', return_value=('A sufficiently long spoken answer.', 'google')), patch('app.routers.practice.get_ielts_feedback', new=AsyncMock(return_value=None)), patch('app.routers.practice.persist_recording', side_effect=lambda path: stored_paths.append(path)):
+            response = submit()
+            self.assertEqual(response.status_code, 200, response.text)
+            filename = response.json()['audio_url'].split('/')[-1]
+            self.assertFalse(stored_paths[0].exists())
+            with patch('app.routers.practice.recording_response', return_value=Response(b'remote audio')) as download:
+                self.assertEqual(self.client.get('/api/practice/audio/' + filename).status_code, 401)
+                download.assert_not_called()
+                self.assertEqual(self.client.get('/api/practice/audio/' + filename, headers=self.headers).status_code, 200)
+                download.assert_called_once_with(filename)
+            with patch('app.routers.practice.delete_recording_file') as delete:
+                self.assertEqual(self.client.delete('/api/practice/audio/' + filename, headers=self.headers).status_code, 200)
+                delete.assert_called_once_with(filename)
+            with patch('sqlalchemy.orm.Session.commit', side_effect=RuntimeError('test commit failure')), patch('app.routers.practice.delete_recording_file') as delete:
+                with self.assertRaises(RuntimeError):
+                    submit()
+                delete.assert_called_once_with(stored_paths[-1].name)
+                self.assertFalse(stored_paths[-1].exists())
+        with SessionLocal() as db:
+            self.assertEqual(db.query(models.PracticeSession).filter_by(user_id=self.user_id).count(), 1)
+        self.assertEqual(self.client.get('/api/progress/daily', headers=self.headers).json()['practice_count'], 1)
+
     def test_upload_analysis_mock_and_ownership(self):
         bad = self.client.post('/api/practice/analyze', headers=self.headers, data={'question_id': self.question['id'], 'part': self.question['part']}, files={'audio': ('bad.wav', b'not audio', 'audio/wav')})
         self.assertEqual(bad.status_code, 422, bad.text)

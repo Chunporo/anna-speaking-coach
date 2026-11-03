@@ -1,5 +1,6 @@
 from app.utils.rate_limit import ai_user
 from app.utils.uploads import save_audio
+from app.services.audio_storage import persist_recording, recording_response, delete_recording_file
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
 from sqlalchemy.orm import Session
@@ -217,14 +218,25 @@ async def analyze_audio(
     )
     db.add(db_session)
 
+    stored_remotely = False
     try:
+        await asyncio.to_thread(persist_recording, file_path)
+        stored_remotely = settings.AUDIO_STORAGE == 'supabase'
         update_all_progress(db, current_user.id, part)
         db.commit()
-        db.refresh(db_session)
     except Exception:
         db.rollback()
+        if stored_remotely:
+            try:
+                await asyncio.to_thread(delete_recording_file, filename)
+            except HTTPException:
+                logging.error('Could not remove orphan recording after database failure')
         file_path.unlink(missing_ok=True)
         raise
+    finally:
+        if settings.AUDIO_STORAGE == 'supabase':
+            file_path.unlink(missing_ok=True)
+    db.refresh(db_session)
 
     return db_session
 
@@ -403,16 +415,14 @@ def get_feedback_stats(
 
 @router.get("/audio/{filename}")
 def get_recording(filename: str, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
-    from fastapi.responses import FileResponse
     if Path(filename).name != filename:
         raise HTTPException(status_code=404, detail="Recording not found")
     session = db.query(models.PracticeSession).filter_by(
         user_id=current_user.id, audio_url=f"{settings.UPLOAD_BASE_URL}/{filename}"
     ).first()
-    path = settings.UPLOAD_DIR / filename
-    if not session or not path.is_file():
+    if not session:
         raise HTTPException(status_code=404, detail="Recording not found")
-    return FileResponse(path, headers={"Cache-Control": "private, no-store"})
+    return recording_response(filename)
 
 
 @router.delete('/audio/{filename}')
@@ -422,5 +432,5 @@ def delete_recording(filename: str, current_user: models.User = Depends(auth.get
     session = db.query(models.PracticeSession).filter_by(user_id=current_user.id, audio_url=f'{settings.UPLOAD_BASE_URL}/{filename}').first()
     if not session:
         raise HTTPException(status_code=404, detail='Recording not found')
-    (settings.UPLOAD_DIR / filename).unlink(missing_ok=True)
+    delete_recording_file(filename)
     return {'deleted': True}

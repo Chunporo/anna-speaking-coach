@@ -1,0 +1,32 @@
+# Fresh preview API. PostgreSQL and private audio storage live in Supabase.
+services:
+  - type: web
+    name: anna-speaking-coach-api
+    runtime: docker
+    plan: free
+    branch: review/anna-coach-integration
+    region: singapore
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    dockerCommand: sh start-render.sh
+    healthCheckPath: /api/health
+    autoDeployTrigger: "off"
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: CORS_ALLOW_ALL
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: AUDIO_STORAGE
+        value: supabase
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_AUDIO_BUCKET
+        value: recordings

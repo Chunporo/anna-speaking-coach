@@ -254,6 +254,10 @@ To deploy your application to production, see the comprehensive deployment guide
 
 **Easiest option:** Deploy frontend to [Vercel](https://vercel.com) and backend to [Railway](https://railway.app). See [DEPLOY_QUICKSTART.md](./docs/deployment/DEPLOY_QUICKSTART.md) for step-by-step instructions.
 
+For a fresh free preview using Render and Supabase instead of Railway, follow
+[DEPLOY_FREE_PREVIEW.md](./DEPLOY_FREE_PREVIEW.md). It includes private recording
+storage and the free-tier limitations.
+
 ## 🔐 Google OAuth Setup
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
