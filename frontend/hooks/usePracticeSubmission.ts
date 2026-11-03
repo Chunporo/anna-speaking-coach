@@ -15,7 +15,7 @@ export function usePracticeSubmission() {
   const submitRecording = async (
     audioBlob: Blob,
     question: Question,
-    onSuccess?: (session: PracticeSession) => void
+    onSuccess?: (session: PracticeSession) => void | Promise<void>
   ) => {
     if (!audioBlob || !question) return;
 
@@ -42,7 +42,7 @@ export function usePracticeSubmission() {
       setLastSubmission(session);
 
       if (onSuccess) {
-        onSuccess(session);
+        await onSuccess(session);
       }
 
     } catch (err: any) {
@@ -54,6 +54,10 @@ export function usePracticeSubmission() {
     }
   };
 
+  const clearLastSubmission = () => {
+    setLastSubmission(null);
+  };
+
   return {
     submitting,
     analyzing,
@@ -61,5 +65,6 @@ export function usePracticeSubmission() {
     lastSubmission,
     submitRecording,
     setError,
+    clearLastSubmission,
   };
 }

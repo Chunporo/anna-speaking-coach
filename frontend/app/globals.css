@@ -3,18 +3,179 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 255, 255, 255;
-  --background-end-rgb: 255, 255, 255;
+  color-scheme: light;
+  --canvas: #f7f8f4;
+  --surface: #ffffff;
+  --ink: #182e2a;
+  --muted: #60706b;
+  --line: #dce4dd;
+  --brand: #176b55;
+  --brand-soft: #eaf3ec;
+  --accent: #b7522a;
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+@layer base {
+  * {
+    @apply border-gray-200;
+  }
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button,
+  a {
+    touch-action: manipulation;
+  }
+  button {
+    min-height: 44px;
+  }
+  button:not(:disabled),
+  a {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+  :focus-visible {
+    outline: 3px solid var(--brand);
+    outline-offset: 4px;
+  }
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+  ::selection {
+    background: #d4e7d7;
+    color: #182e2a;
+  }
 }
 
+@layer components {
+  .app-main {
+    @apply min-w-0 flex-1 px-5 pb-28 pt-24 md:px-8 md:pb-12 md:pt-10 lg:px-12;
+  }
+  .page-wrap {
+    @apply mx-auto w-full max-w-6xl;
+  }
+  .page-header {
+    @apply mb-8 flex flex-wrap items-end justify-between gap-5;
+  }
+  .eyebrow {
+    @apply mb-2 text-xs font-semibold uppercase tracking-[0.16em];
+    color: var(--brand);
+  }
+  .page-title {
+    @apply text-3xl font-semibold leading-tight sm:text-4xl;
+    color: var(--ink);
+  }
+  .page-description {
+    @apply mt-3 max-w-2xl text-sm leading-7 sm:text-base;
+    color: var(--muted);
+  }
+  .surface {
+    @apply rounded-2xl border p-5 sm:p-7;
+    background: var(--surface);
+    border-color: var(--line);
+  }
+  .section-title {
+    @apply text-lg font-semibold;
+    color: var(--ink);
+  }
+  .btn {
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition-colors;
+  }
+  .btn-primary {
+    @apply btn bg-primary-700 text-white hover:bg-primary-800;
+  }
+  .btn-secondary {
+    @apply btn border bg-white text-primary-800 hover:bg-primary-50;
+    border-color: var(--line);
+  }
+  .btn-quiet {
+    @apply btn bg-transparent text-primary-800 hover:bg-primary-50;
+  }
+  .icon-button {
+    @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border bg-white transition-colors hover:bg-primary-50;
+  }
+  .field {
+    @apply min-h-[46px] w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary-700 focus:ring-2 focus:ring-primary-100;
+    border-color: var(--line);
+  }
+  .field-label {
+    @apply mb-2 block text-sm font-medium;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold;
+    background: var(--brand-soft);
+    color: var(--brand);
+  }
+  .notice {
+    @apply rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800;
+  }
+  .empty-state {
+    @apply rounded-2xl border border-dashed px-6 py-12 text-center;
+    border-color: var(--line);
+    color: var(--muted);
+  }
+  .skeleton {
+    @apply animate-pulse rounded-xl bg-gray-200;
+  }
+  .skip-link {
+    @apply fixed left-4 top-4 z-[100] -translate-y-24 rounded-lg bg-primary-800 px-5 py-3 text-white focus:translate-y-0;
+  }
+}
+
+/* Shared framing for retained recording, feedback and analytics components. */
+.app-main > div {
+  max-width: 1152px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.app-main .shadow-sm {
+  box-shadow: none;
+}
+.app-main .rounded-lg {
+  border-radius: 16px;
+}
+.app-main .bg-white {
+  border-color: var(--line);
+}
+.app-main .text-gray-800,
+.app-main .text-gray-900 {
+  color: var(--ink);
+}
+.app-main .text-gray-500,
+.app-main .text-gray-600 {
+  color: var(--muted);
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.bg-primary-900 :focus-visible {
+  outline-color: #fff;
+}

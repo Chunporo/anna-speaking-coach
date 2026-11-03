@@ -1,195 +1,427 @@
-'use client';
+"use client";
 
-import Sidebar from '@/components/Sidebar';
-import { Mic, Search, Eye, EyeOff } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
-import api from '@/lib/api';
+import Link from "next/link";
+import {
+  Mic,
+  Search,
+  Eye,
+  EyeOff,
+  ArrowUpRight,
+  Plus,
+  Check,
+  X,
+} from "lucide-react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import Sidebar from "@/components/Sidebar";
+import PageHeader, { EmptyState, LoadingCards } from "@/components/PageHeader";
+import api from "@/lib/api";
 
 interface Question {
   id: number;
   part: number;
-  topic: string;
+  topic: string | null;
   question_text: string;
 }
+interface HistoryItem {
+  question_id: number | null;
+  user_question_id: number | null;
+  audio_url: string | null;
+}
 
-export default function PracticePage() {
-  const searchParams = useSearchParams();
-  const part = searchParams.get('part') ? parseInt(searchParams.get('part')!) : 1;
-  const custom = searchParams.get('custom') === 'true';
-
-  const [activeTab, setActiveTab] = useState(part);
+function PracticeContent() {
+  const params = useSearchParams();
+  const requested = Number(params.get("part") || 1);
+  const part = [1, 2, 3].includes(requested) ? requested : 1;
+  const custom = params.get("custom") === "true";
+  const [activeTab, setActiveTab] = useState(custom ? 0 : part);
   const [hideAnswered, setHideAnswered] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [search, setSearch] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [topics, setTopics] = useState<string[]>([]);
+  const [answered, setAnswered] = useState<Set<number>>(new Set());
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [draft, setDraft] = useState({ part: 1, topic: "", question_text: "" });
+  const sequence = useRef(0);
+  useEffect(() => {
+    setActiveTab(custom ? 0 : part);
+  }, [custom, part]);
+  const fetchQuestions = useCallback(async () => {
+    const request = ++sequence.current;
+    setLoading(true);
+    setError("");
+    try {
+      const [result, history] = await Promise.allSettled([
+        api.get(
+          activeTab === 0 ? "/api/questions/user-questions" : "/api/questions",
+          { params: activeTab === 0 ? {} : { part: activeTab } },
+        ),
+        api.get<HistoryItem[]>("/api/practice/"),
+      ]);
+      if (request !== sequence.current) return;
+      if (result.status === "rejected") throw result.reason;
+      setQuestions(result.value.data);
+      setAnswered(
+        new Set(
+          history.status === "fulfilled"
+            ? history.value.data
+                .filter((item) => item.audio_url)
+                .map((item) =>
+                  activeTab === 0 ? item.user_question_id : item.question_id,
+                )
+                .filter((id): id is number => id !== null)
+            : [],
+        ),
+      );
+    } catch {
+      if (request === sequence.current) {
+        setQuestions([]);
+        setError("Không thể tải câu hỏi. Vui lòng đăng nhập hoặc thử lại.");
+      }
+    } finally {
+      if (request === sequence.current) setLoading(false);
+    }
+  }, [activeTab]);
   useEffect(() => {
     fetchQuestions();
-    fetchTopics();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
-
-  const fetchQuestions = async () => {
+    return () => {
+      sequence.current++;
+    };
+  }, [fetchQuestions]);
+  const createQuestion = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
     try {
-      setLoading(true);
-      const endpoint = custom
-        ? '/api/questions/user-questions'
-        : '/api/questions';
-      const response = await api.get(endpoint, {
-        params: { part: activeTab },
+      await api.post("/api/questions/user-questions", {
+        ...draft,
+        question_text: draft.question_text.trim(),
       });
-      setQuestions(response.data);
-    } catch (error) {
-      console.error('Error fetching questions:', error);
+      setDraft({ part: 1, topic: "", question_text: "" });
+      setShowForm(false);
+      await fetchQuestions();
+    } catch {
+      setError(
+        "Chưa thể lưu câu hỏi. Nội dung của bạn vẫn được giữ lại để thử lại.",
+      );
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
-
-  const fetchTopics = async () => {
-    try {
-      const response = await api.get('/api/questions/topics', {
-        params: { part: activeTab },
-      });
-      setTopics(response.data);
-    } catch (error) {
-      console.error('Error fetching topics:', error);
-    }
-  };
-
-  const filteredQuestions = questions.filter((q) =>
-    q.question_text.toLowerCase().includes(searchQuery.toLowerCase())
+  const filtered = questions.filter(
+    (q) =>
+      (!hideAnswered || !answered.has(q.id)) &&
+      `${q.question_text} ${q.topic || ""}`
+        .toLowerCase()
+        .includes(search.toLowerCase()),
   );
-
-  const questionsByTopic = filteredQuestions.reduce((acc, q) => {
-    if (!acc[q.topic]) {
-      acc[q.topic] = [];
-    }
-    acc[q.topic].push(q);
-    return acc;
-  }, {} as Record<string, Question[]>);
-
+  const grouped = filtered.reduce(
+    (groups, q) => {
+      const topic = q.topic || "Câu hỏi của bạn";
+      (groups[topic] ||= []).push(q);
+      return groups;
+    },
+    {} as Record<string, Question[]>,
+  );
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 p-8">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-800 mb-4">Luyện theo câu</h1>
-            
-            {/* Tabs */}
-            <div className="flex gap-2 mb-4">
-              {[1, 2, 3].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                    activeTab === tab
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-white text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  Luyện Part {tab}
-                </button>
-              ))}
+      <main id="main-content" className="app-main">
+        <div className="page-wrap">
+          <PageHeader
+            eyebrow="Luyện theo nhịp của bạn"
+            title="Mỗi câu hỏi, một cơ hội tiến bộ."
+            description="Chọn chủ đề bạn thích. Ghi âm, nghe lại và thử một cách diễn đạt mới."
+            action={
               <button
                 onClick={() => {
                   setActiveTab(0);
-                  fetchQuestions();
+                  setShowForm(true);
                 }}
-                className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                  activeTab === 0
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
+                className="btn-secondary"
               >
-                Câu Bạn thêm
+                <Plus size={17} aria-hidden="true" />
+                Thêm câu hỏi
               </button>
-            </div>
-
-            {/* Controls */}
-            <div className="flex items-center gap-4">
+            }
+          />
+          <div
+            role="tablist"
+            aria-label="Phần luyện tập"
+            className="mb-6 flex flex-wrap gap-2 border-b pb-4"
+          >
+            {[
+              { id: 1, label: "Part 1", note: "Làm quen" },
+              { id: 2, label: "Part 2", note: "Trình bày" },
+              { id: 3, label: "Part 3", note: "Thảo luận" },
+              { id: 0, label: "Câu hỏi của bạn", note: "" },
+            ].map((tab) => (
               <button
-                onClick={() => setHideAnswered(!hideAnswered)}
-                className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-50 transition-colors"
+                key={tab.id}
+                id={`part-tab-${tab.id}`}
+                role="tab"
+                tabIndex={activeTab === tab.id ? 0 : -1}
+                onKeyDown={(event) => {
+                  const order = [1, 2, 3, 0];
+                  const index = order.indexOf(tab.id);
+                  const next =
+                    event.key === "ArrowRight"
+                      ? order[(index + 1) % 4]
+                      : event.key === "ArrowLeft"
+                        ? order[(index + 3) % 4]
+                        : event.key === "Home"
+                          ? 1
+                          : event.key === "End"
+                            ? 0
+                            : null;
+                  if (next !== null) {
+                    event.preventDefault();
+                    setActiveTab(next);
+                    document.getElementById(`part-tab-${next}`)?.focus();
+                  }
+                }}
+                aria-selected={activeTab === tab.id}
+                aria-controls="questions-panel"
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setShowForm(false);
+                }}
+                className={`min-h-[48px] rounded-xl px-4 py-3 text-sm transition-colors ${activeTab === tab.id ? "bg-primary-800 text-white" : "text-gray-600 hover:bg-primary-50"}`}
               >
-                {hideAnswered ? <EyeOff size={18} /> : <Eye size={18} />}
-                <span>Ẩn câu đã trả lời</span>
-              </button>
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  type="text"
-                  placeholder="Tìm câu hỏi"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Questions by Topic */}
-          {loading ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">Đang tải...</p>
-            </div>
-          ) : (
-            <div className="space-y-8">
-              {Object.entries(questionsByTopic).map(([topic, topicQuestions]) => (
-                <div key={topic} className="bg-white rounded-lg shadow-sm p-6">
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4">{topic}</h2>
-                  <div className="space-y-6">
-                    {topicQuestions.map((question) => (
-                      <div key={question.id} className="border-b border-gray-100 pb-4 last:border-0">
-                        <div className="flex items-start justify-between mb-3">
-                          <p className="text-gray-700 flex-1">{question.question_text}</p>
-                          <a
-                            href={`/practice/${question.id}`}
-                            className="ml-4 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 transition-colors flex items-center gap-2 whitespace-nowrap"
-                          >
-                            <Mic size={16} />
-                            Luyện ngay
-                          </a>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    onClick={async () => {
-                      try {
-                        // Create practice sessions for all questions in this topic
-                        await Promise.all(
-                          topicQuestions.map(q =>
-                            api.post('/api/practice/', {
-                              question_id: q.id,
-                              part: activeTab,
-                            })
-                          )
-                        );
-                        alert('Practice sessions created! Calendar updated.');
-                        // Refresh questions to show updated state
-                        fetchQuestions();
-                      } catch (error) {
-                        console.error('Error creating practice session:', error);
-                        alert('Error creating practice session');
-                      }
-                    }}
-                    className="mt-4 px-6 py-2 bg-pink-100 text-pink-700 rounded-lg font-medium hover:bg-pink-200 transition-colors flex items-center gap-2"
+                <span className="font-semibold">{tab.label}</span>
+                {tab.note && (
+                  <span
+                    className={`ml-2 hidden text-xs sm:inline ${activeTab === tab.id ? "text-primary-100" : "text-gray-500"}`}
                   >
-                    <Mic size={18} />
-                    Luyện topic này
+                    {tab.note}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+          <section
+            id="questions-panel"
+            role="tabpanel"
+            aria-labelledby={`part-tab-${activeTab}`}
+          >
+            {error && (
+              <div role="alert" className="notice mb-5">
+                {error}
+              </div>
+            )}
+            {activeTab === 0 && showForm && (
+              <form onSubmit={createQuestion} className="surface mb-6">
+                <div className="mb-6 flex items-center justify-between">
+                  <h2 className="section-title">Câu hỏi theo cách của bạn</h2>
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                    className="icon-button"
+                    aria-label="Đóng biểu mẫu"
+                  >
+                    <X size={17} aria-hidden="true" />
                   </button>
                 </div>
-              ))}
+                <div className="grid gap-4 sm:grid-cols-[140px_1fr]">
+                  <label>
+                    <span className="field-label">Phần thi</span>
+                    <select
+                      value={draft.part}
+                      onChange={(e) =>
+                        setDraft({ ...draft, part: Number(e.target.value) })
+                      }
+                      className="field"
+                    >
+                      {[1, 2, 3].map((part) => (
+                        <option key={part} value={part}>
+                          Part {part}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span className="field-label">
+                      Chủ đề{" "}
+                      <span className="font-normal text-gray-500">
+                        (tùy chọn)
+                      </span>
+                    </span>
+                    <input
+                      value={draft.topic}
+                      onChange={(e) =>
+                        setDraft({ ...draft, topic: e.target.value })
+                      }
+                      maxLength={100}
+                      className="field"
+                    />
+                  </label>
+                </div>
+                <label className="mt-4 block">
+                  <span className="field-label">Nội dung câu hỏi</span>
+                  <textarea
+                    required
+                    maxLength={5000}
+                    rows={3}
+                    value={draft.question_text}
+                    onChange={(e) =>
+                      setDraft({ ...draft, question_text: e.target.value })
+                    }
+                    className="field"
+                    placeholder="What is something you would love to learn?"
+                  />
+                </label>
+                <div className="mt-5 flex justify-end">
+                  <button
+                    disabled={saving || !draft.question_text.trim()}
+                    className="btn-primary"
+                  >
+                    {saving ? "Đang lưu…" : "Lưu câu hỏi"}
+                    <Plus size={16} aria-hidden="true" />
+                  </button>
+                </div>
+              </form>
+            )}
+            <div className="mb-6 flex flex-wrap items-center gap-3">
+              <label className="relative min-w-[180px] flex-1">
+                <Search
+                  size={18}
+                  aria-hidden="true"
+                  className="absolute left-4 top-3.5 text-gray-500"
+                />
+                <span className="sr-only">Tìm câu hỏi hoặc chủ đề</span>
+                <input
+                  type="search"
+                  className="field pl-11"
+                  placeholder="Tìm câu hỏi hoặc chủ đề…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </label>
+              <button
+                aria-pressed={hideAnswered}
+                onClick={() => setHideAnswered(!hideAnswered)}
+                className={
+                  hideAnswered
+                    ? "btn bg-primary-100 text-primary-900"
+                    : "btn-secondary"
+                }
+              >
+                {hideAnswered ? (
+                  <EyeOff size={17} aria-hidden="true" />
+                ) : (
+                  <Eye size={17} aria-hidden="true" />
+                )}
+                Ẩn câu đã luyện
+              </button>
             </div>
-          )}
+            <p aria-live="polite" className="mb-5 text-xs text-gray-500">
+              {loading
+                ? "Đang tìm câu hỏi…"
+                : `${filtered.length} câu hỏi · ${Object.keys(grouped).length} chủ đề`}
+            </p>
+            {loading ? (
+              <LoadingCards />
+            ) : filtered.length === 0 ? (
+              <EmptyState
+                title={
+                  activeTab === 0 && !search
+                    ? "Không gian cho những câu hỏi của bạn"
+                    : "Chưa tìm thấy câu hỏi phù hợp"
+                }
+                description={
+                  activeTab === 0 && !search
+                    ? "Thêm một câu hỏi về điều bạn yêu thích để bắt đầu luyện nói."
+                    : "Thử một từ khóa khác hoặc hiển thị lại những câu đã luyện."
+                }
+                action={
+                  activeTab === 0 ? (
+                    <button
+                      className="btn-primary"
+                      onClick={() => setShowForm(true)}
+                    >
+                      <Plus size={16} aria-hidden="true" />
+                      Thêm câu hỏi đầu tiên
+                    </button>
+                  ) : (
+                    <button
+                      className="btn-secondary"
+                      onClick={() => {
+                        setSearch("");
+                        setHideAnswered(false);
+                      }}
+                    >
+                      Xóa bộ lọc
+                    </button>
+                  )
+                }
+              />
+            ) : (
+              <div className="space-y-5">
+                {Object.entries(grouped).map(([topic, items]) => (
+                  <article key={topic} className="surface">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                      <h2 className="section-title">{topic}</h2>
+                      <span className="text-xs text-gray-500">
+                        {items.length} câu hỏi
+                      </span>
+                    </div>
+                    <div className="divide-y">
+                      {items.map((q) => (
+                        <div
+                          key={q.id}
+                          className="flex flex-col items-start gap-4 py-5 sm:flex-row sm:items-center"
+                        >
+                          <span
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${answered.has(q.id) ? "bg-primary-50 text-primary-700" : "bg-[#f7f8f4] text-gray-500"}`}
+                          >
+                            {answered.has(q.id) ? (
+                              <Check size={17} aria-label="Đã luyện" />
+                            ) : (
+                              <Mic size={16} aria-hidden="true" />
+                            )}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p lang="en" className="font-medium leading-7">
+                              {q.question_text}
+                            </p>
+                            {activeTab === 0 && (
+                              <p className="mt-1 text-xs text-gray-500">
+                                Part {q.part}
+                              </p>
+                            )}
+                          </div>
+                          <Link
+                            href={`/practice/${q.id}${activeTab === 0 ? "?custom=true" : ""}`}
+                            className="btn-secondary shrink-0"
+                          >
+                            Luyện ngay
+                            <ArrowUpRight size={16} aria-hidden="true" />
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
       </main>
     </div>
   );
 }
-
+export default function PracticePage() {
+  return (
+    <Suspense
+      fallback={
+        <p role="status" className="p-8">
+          Đang tải câu hỏi…
+        </p>
+      }
+    >
+      <PracticeContent />
+    </Suspense>
+  );
+}

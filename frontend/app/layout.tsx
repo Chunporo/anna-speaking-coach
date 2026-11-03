@@ -1,26 +1,22 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Anna - IELTS Speaking Practice',
-  description: 'Self-practice IELTS Speaking platform',
-}
+  title: "Anna - IELTS Speaking Practice",
+  description: "Self-practice IELTS Speaking platform",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <head>
-        <script src="https://js.puter.com/v2/" async></script>
-      </head>
+    <html lang="vi">
       <body className={inter.className}>{children}</body>
     </html>
-  )
+  );
 }
-
