@@ -102,8 +102,7 @@ pip install -r requirements.txt
 # Create database
 createdb ielts_speaking
 
-# Run schema
-psql ielts_speaking < database/schema.sql
+# Configure .env in the next step before initializing the schema.
 ```
 
 4. Create `.env` file:
@@ -117,6 +116,7 @@ cp .env.example .env
 
 5. Run the server:
 ```bash
+python database/init_db.py --seed  # Fresh database only
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -278,3 +278,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   <p>Made with ❤️ for IELTS learners</p>
   <p>⭐ Star this repo if you find it helpful!</p>
 </div>
+
+## Current implementation and operations
+
+See [implementation progress](IMPLEMENTATION.md) for completed repairs and deployment checks, and [backend operations](backend/OPERATIONS.md) for migrations, private recordings, service requirements and retention. AI scores are text estimates; pronunciation requires audio assessment and is not scored from transcripts.

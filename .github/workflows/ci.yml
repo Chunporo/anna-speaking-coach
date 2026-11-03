@@ -1,0 +1,45 @@
+name: Checks
+on: [push, pull_request]
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: anna
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: anna_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U anna -d anna_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://anna:test-only@localhost:5432/anna_test
+      TEST_DATABASE_URL: postgresql://anna:test-only@localhost:5432/anna_test
+      PYTHONPATH: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      - run: pip install -r backend/requirements.txt
+      - run: python backend/database/init_db.py --seed
+      - run: python backend/database/init_db.py
+      - run: python -m unittest discover -s backend/tests -v
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: node --test tests/*.test.cjs
+      - run: npm run build
