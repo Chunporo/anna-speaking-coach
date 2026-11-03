@@ -69,8 +69,10 @@ Set `NEXT_PUBLIC_API_URL` to Render's HTTPS base URL (without `/api`). Rebuild t
 preview after changing it; this variable is embedded at build time. Ensure the
 resulting preview origin is included in Render's `ALLOWED_ORIGINS`.
 
-The root `vercel.json` is for a repository-root deployment; when deploying the
-frontend directory directly, explicitly configure `.next` as the output path.
+Use Vercel's **Root Directory = frontend**, or deploy with `vercel --cwd frontend`.
+`frontend/vercel.json` explicitly configures Next.js and the `.next` output.
+The older repository-root configuration is not the supported path for this
+preview.
 
 ## 4. Verify
 
