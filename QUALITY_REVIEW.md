@@ -37,6 +37,10 @@ results must be checked on the follow-up PR's exact commit.
   Python dependencies are transitively locked and hashed, installed as wheels.
   Clean image build, offline imports, dependency consistency, writable upload
   directories, and exclusion of credential/diagnostic files were verified.
+- Compose uses a named upload volume initialized with the image's application
+  ownership. Two separate container runs verify both write access and persisted
+  recordings. This avoids the host bind-mount permissions regression introduced
+  by switching the image to a nonroot user.
 - Setup and container npm installs suppress lifecycle scripts and include the
   prebuilt optional native packages. Commit tooling does not download packages
   implicitly through npx.
@@ -44,6 +48,21 @@ results must be checked on the follow-up PR's exact commit.
 The independent source review found no further confirmed critical or important
 defects in ownership enforcement, progress transactions, private recording
 persistence, or mock-test completion. New fixes have regression coverage.
+
+### Existing Compose uploads
+
+The old `./backend/uploads` directory is untouched. If it contains recordings,
+copy them into the new named volume before starting the updated backend:
+
+```sh
+docker compose stop backend
+docker compose build backend
+docker compose run --rm --no-deps --user root --entrypoint sh -v "$PWD/backend/uploads:/legacy:ro" backend -c 'cp -an /legacy/. /app/uploads/ && chown -R app:app /app/uploads'
+docker compose up -d backend
+```
+
+The copy preserves existing destination files and does not remove the source.
+Fresh installations need no copy step. Keep the existing database volume.
 
 ## Remaining dependency risk
 

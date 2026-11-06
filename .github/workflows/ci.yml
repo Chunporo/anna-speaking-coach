@@ -35,6 +35,14 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       - run: pip install -r backend/requirements-dev.txt
       - run: python backend/tests/run_coverage.py
+      - name: Verify nonroot Compose uploads
+        env:
+          SECRET_KEY: ci-only-compose-volume-validation-signing-key
+        run: |
+          docker compose --project-name ci-volume --env-file /dev/null build backend
+          docker compose --project-name ci-volume --env-file /dev/null run --rm --no-deps --entrypoint sh backend -c 'test "$(id -u)" -ne 0 && touch uploads/audio/.write-check uploads/tts/.write-check'
+          docker compose --project-name ci-volume --env-file /dev/null run --rm --no-deps --entrypoint sh backend -c 'test -f uploads/audio/.write-check && test -f uploads/tts/.write-check && rm uploads/audio/.write-check uploads/tts/.write-check'
+          docker compose --project-name ci-volume --env-file /dev/null down --volumes
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: backend-coverage

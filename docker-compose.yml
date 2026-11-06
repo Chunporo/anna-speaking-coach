@@ -37,7 +37,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend/uploads:/app/uploads
+      - backend_uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -64,6 +64,8 @@ services:
     restart: unless-stopped
 
 volumes:
+  backend_uploads:
+    driver: local
   postgres_data:
     driver: local
 
