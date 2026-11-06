@@ -1,5 +1,5 @@
 from datetime import timedelta
-import random
+import secrets
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -125,7 +125,7 @@ async def google_auth(
                 counter += 1
                 # Prevent infinite loop (max 999 users with same base)
                 if counter > 999:
-                    username = f"{username_base}{random.randint(1000, 9999)}"
+                    username = f"{username_base}{1000 + secrets.randbelow(9000)}"
                     break
             
             user = models.User(

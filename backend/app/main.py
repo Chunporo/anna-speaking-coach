@@ -3,6 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from app.routers import auth, questions, practice, mock_test, progress, users, transcription, feedback
 from app.core.config import settings
 from app.core.middleware import setup_cors_middleware, cors_debug_middleware
+from app.services.tts_service import TTS_OUTPUT_DIR
 import logging
 
 logger = logging.getLogger(__name__)
@@ -10,9 +11,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION)
 
 # Mount static files for audio uploads
-tts_dir = settings.UPLOAD_DIR.parent / "tts"
-tts_dir.mkdir(parents=True, exist_ok=True)
-app.mount("/uploads/tts", StaticFiles(directory=str(tts_dir)), name="tts")
+app.mount("/uploads/tts", StaticFiles(directory=str(TTS_OUTPUT_DIR)), name="tts")
 
 # Setup CORS middleware
 setup_cors_middleware(app)

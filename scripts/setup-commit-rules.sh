@@ -28,34 +28,34 @@ if [ -f frontend/package.json ]; then
 
     if command -v pnpm &> /dev/null; then
         echo "Installing commitlint with pnpm..."
-        pnpm add -D @commitlint/cli @commitlint/config-conventional husky 2>/dev/null || true
+        pnpm add -D --ignore-scripts @commitlint/cli @commitlint/config-conventional husky 2>/dev/null || true
 
         if [ -f package.json ]; then
             # Initialize husky
             if [ ! -d .husky ]; then
-                npx husky install 2>/dev/null || true
+                npx --no-install husky install 2>/dev/null || true
             fi
 
             # Add commit-msg hook
             if [ -d .husky ]; then
-                echo "npx --no -- commitlint --edit \$1" > .husky/commit-msg
+                echo "npx --no-install commitlint --edit \$1" > .husky/commit-msg
                 chmod +x .husky/commit-msg
                 echo "✅ Created commit-msg hook"
             fi
         fi
     elif command -v npm &> /dev/null; then
         echo "Installing commitlint with npm..."
-        npm install --save-dev @commitlint/cli @commitlint/config-conventional husky 2>/dev/null || true
+        npm install --ignore-scripts --include=optional --save-dev @commitlint/cli @commitlint/config-conventional husky 2>/dev/null || true
 
         if [ -f package.json ]; then
             # Initialize husky
             if [ ! -d .husky ]; then
-                npx husky install 2>/dev/null || true
+                npx --no-install husky install 2>/dev/null || true
             fi
 
             # Add commit-msg hook
             if [ -d .husky ]; then
-                echo "npx --no -- commitlint --edit \$1" > .husky/commit-msg
+                echo "npx --no-install commitlint --edit \$1" > .husky/commit-msg
                 chmod +x .husky/commit-msg
                 echo "✅ Created commit-msg hook"
             fi

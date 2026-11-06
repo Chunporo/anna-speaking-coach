@@ -18,7 +18,7 @@ source venv/bin/activate
 
 # Install dependencies
 echo "Installing backend dependencies..."
-pip install -r requirements.txt
+pip install --only-binary=:all: --require-hashes -r requirements.lock
 
 # Create .env file if it doesn't exist
 if [ ! -f ".env" ]; then
@@ -36,7 +36,7 @@ cd frontend
 
 # Install dependencies
 echo "Installing frontend dependencies..."
-npm install
+npm ci --ignore-scripts --include=optional
 
 # Create .env.local file if it doesn't exist
 if [ ! -f ".env.local" ]; then

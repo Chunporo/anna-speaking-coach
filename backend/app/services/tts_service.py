@@ -35,7 +35,7 @@ def generate_tts_audio(text: str, output_filename: Optional[str] = None) -> Path
     try:
         # Generate filename from text hash if not provided
         if output_filename is None:
-            text_hash = hashlib.md5(text.encode('utf-8')).hexdigest()
+            text_hash = hashlib.sha256(text.encode('utf-8')).hexdigest()
             output_filename = f"tts_{text_hash}"
         
         output_path = TTS_OUTPUT_DIR / f"{output_filename}.wav"

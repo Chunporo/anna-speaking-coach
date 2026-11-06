@@ -20,7 +20,10 @@ export function useAudioPlayback() {
         setIsPlaying(false);
         setError('Failed to play recording');
       };
-      audio.play();
+      audio.play().catch(() => {
+        setIsPlaying(false);
+        setError('Failed to play recording');
+      });
       setIsPlaying(true);
     }
   };

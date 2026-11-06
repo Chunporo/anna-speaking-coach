@@ -26,7 +26,7 @@ export function usePracticeHistory(questionId: number) {
 
   useEffect(() => {
     if (questionId) {
-      fetchPracticeHistory();
+      void fetchPracticeHistory();
     }
   }, [questionId]);
 
