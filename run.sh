@@ -89,7 +89,7 @@ cd frontend
 # Check if node_modules exists
 if [ ! -d "node_modules" ]; then
     echo -e "${YELLOW}node_modules not found. Installing dependencies...${NC}"
-    npm install
+    npm ci --ignore-scripts --include=optional
 fi
 
 # Check if .env.local exists

@@ -3,7 +3,7 @@
 Project: https://sonarcloud.io/project/overview?id=Chunporo_anna-speaking-coach
 Organization: chunporo
 
-The repository uses standard SonarScanner analysis through `.github/workflows/sonarcloud.yml` and `sonar-project.properties`. This does not require Vortex. Vortex-based CLI analysis remains unavailable for the current connection.
+The repository uses standard SonarScanner analysis through `.github/workflows/ci.yml` and `sonar-project.properties`. This does not require Vortex. Vortex-based CLI analysis remains unavailable for the current connection.
 
 ## Configured
 
@@ -22,12 +22,25 @@ Commit and push the workflow and properties file together with the code you want
 For a new pull request, inspect the SonarCloud workflow in GitHub Actions. On master, once the workflow exists remotely, it can also be triggered with:
 
 ```sh
-gh workflow run sonarcloud.yml --repo Chunporo/anna-speaking-coach --ref master
+gh workflow run ci.yml --repo Chunporo/anna-speaking-coach --ref master
 ```
 
 Only committed code is analyzed by GitHub Actions; local uncommitted repairs are not included. The existing cloud findings refer to the previous analyzed commit.
 
-No coverage report is imported yet. The configuration identifies automated tests and legacy diagnostic scripts as test sources, but code coverage requires generating and importing reports separately. A successful scanner upload does not imply that the quality gate passes.
+The backend job runs real migrations and regressions against a dedicated PostgreSQL database and generates `coverage.xml`. The frontend job executes TypeScript and React interaction tests with V8 coverage and generates `frontend/coverage/lcov.info`. Both jobs upload only their reports. The analysis job depends on both succeeding and downloads artifacts from the same workflow run before scanning; reports therefore describe the same commit as the analyzed code.
+
+The existing 80% new-code coverage threshold remains unchanged. Unexecuted application files are included in coverage collection. Only test files and generated dependencies are omitted from Python coverage. The immutable SQL baseline is excluded from duplication checks because it intentionally snapshots the original schema.
+
+To measure locally, use a dedicated database whose name ends in `_test`:
+
+```sh
+TEST_DATABASE_URL='postgresql:///anna_test' backend/.venv/bin/python backend/tests/run_coverage.py
+cd frontend
+npm ci --include=optional
+npm run test:coverage
+```
+
+Use Node 22 for frontend checks. The backend runner disables developer dotenv files and live provider credentials, and uses an isolated directory for temporary audio files. It never resets a database automatically. Reports remain local build artifacts; a successful test run does not by itself establish that Sonar imported them or passed the quality gate.
 
 ## Troubleshooting
 

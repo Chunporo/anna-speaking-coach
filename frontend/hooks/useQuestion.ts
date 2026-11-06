@@ -27,7 +27,7 @@ export function useQuestion(questionId: number) {
     };
 
     if (questionId) {
-      fetchQuestion();
+      void fetchQuestion();
     }
   }, [questionId]);
 
