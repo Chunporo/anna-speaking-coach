@@ -1,7 +1,8 @@
-from pydantic import BaseModel, EmailStr, Field
-from typing import Optional, List
 from datetime import date, datetime
 from decimal import Decimal
+from typing import List, Optional
+
+from pydantic import BaseModel, EmailStr, Field
 
 
 # User schemas
@@ -11,7 +12,12 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password: str = Field(..., min_length=6, max_length=72, description="Password must be between 6 and 72 characters")
+    password: str = Field(
+        ...,
+        min_length=6,
+        max_length=72,
+        description="Password must be between 6 and 72 characters",
+    )
 
 
 class UserResponse(UserBase):
@@ -91,6 +97,7 @@ class PracticeSessionResponse(BaseModel):
 
 class FeedbackHistoryItem(BaseModel):
     """Condensed feedback item for history list"""
+
     id: int
     question_id: Optional[int]
     part: int = Field(..., ge=1, le=3)
@@ -107,6 +114,7 @@ class FeedbackHistoryItem(BaseModel):
 
 class FeedbackDetailResponse(BaseModel):
     """Detailed feedback response for review"""
+
     id: int
     question_id: Optional[int]
     question_text: Optional[str]
@@ -130,7 +138,7 @@ class FeedbackDetailResponse(BaseModel):
 
 # Mock test schemas
 class MockTestCreate(BaseModel):
-    test_type: str = Field(..., pattern=r'^(PART1|PART2|PART3|FULL)$')
+    test_type: str = Field(..., pattern=r"^(PART1|PART2|PART3|FULL)$")
 
 
 class MockTestResponse(BaseModel):
@@ -245,4 +253,3 @@ class TokenData(BaseModel):
 
 class GoogleTokenRequest(BaseModel):
     token: str  # Google ID token
-

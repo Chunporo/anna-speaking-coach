@@ -1,21 +1,21 @@
-from app.utils.rate_limit import ai_user
-"""
-Feedback router - handles IELTS feedback generation endpoints
-"""
-from fastapi import APIRouter, HTTPException, Depends
+"""Feedback router for IELTS feedback generation endpoints."""
+
+import logging
+import os
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from typing import Optional
-import os
-import logging
 
+from app import models
 from app.services.gemini_feedback_service import (
-    get_ielts_feedback,
-    format_feedback_text,
     GEMINI_AVAILABLE,
-    get_gemini_client
+    format_feedback_text,
+    get_gemini_client,
+    get_ielts_feedback,
 )
-from app import models, auth
+from app.utils.rate_limit import ai_user
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 class FeedbackRequest(BaseModel):
     """Request model for feedback generation"""
+
     transcription: str = Field(..., min_length=10, max_length=20000)
     question: str = Field(..., min_length=1, max_length=5000)
     part: int = 1
@@ -30,6 +31,7 @@ class FeedbackRequest(BaseModel):
 
 class FeedbackResponse(BaseModel):
     """Response model for feedback"""
+
     fluency_score: float
     vocabulary_score: float
     grammar_score: float
@@ -45,13 +47,13 @@ class FeedbackResponse(BaseModel):
 async def get_feedback_status():
     """
     Check if the Gemini feedback service is available and configured
-    
+
     Returns:
         JSON response with service availability status
     """
     gemini_available = False
     gemini_error = None
-    
+
     if not GEMINI_AVAILABLE:
         gemini_error = "google-generativeai package not installed"
     else:
@@ -64,77 +66,70 @@ async def get_feedback_status():
                 gemini_available = True
             else:
                 gemini_error = "Failed to initialize Gemini client"
-    
-    return JSONResponse({
-        "gemini_feedback": {
-            "available": gemini_available,
-            "error": gemini_error
-        },
-        "model": "gemini-2.5-flash" if gemini_available else None
-    })
+
+    return JSONResponse(
+        {
+            "gemini_feedback": {"available": gemini_available, "error": gemini_error},
+            "model": "gemini-2.5-flash" if gemini_available else None,
+        }
+    )
 
 
 @router.post("/analyze", response_model=FeedbackResponse)
 async def analyze_transcription(
-    request: FeedbackRequest,
-    current_user: models.User = Depends(ai_user)
+    request: FeedbackRequest, current_user: models.User = Depends(ai_user)
 ):
     """
     Analyze a transcription and get IELTS examiner feedback
-    
+
     This endpoint can be used to get feedback for any transcription,
     independent of the practice session flow.
-    
+
     Args:
         request: FeedbackRequest with transcription, question, and part
         current_user: Authenticated user
-        
+
     Returns:
         FeedbackResponse with IELTS scores and detailed feedback
     """
     if not request.transcription or len(request.transcription.strip()) < 10:
         raise HTTPException(
             status_code=400,
-            detail="Bản ghi quá ngắn. Vui lòng cung cấp câu trả lời dài hơn."
+            detail="Bản ghi quá ngắn. Vui lòng cung cấp câu trả lời dài hơn.",
         )
-    
+
     if request.part not in [1, 2, 3]:
-        raise HTTPException(
-            status_code=400,
-            detail="Phần thi phải là 1, 2 hoặc 3"
-        )
-    
+        raise HTTPException(status_code=400, detail="Phần thi phải là 1, 2 hoặc 3")
+
     try:
         ielts_feedback = await get_ielts_feedback(
             transcription=request.transcription,
             question=request.question,
-            part=request.part
+            part=request.part,
         )
-        
+
         if not ielts_feedback:
             raise HTTPException(
                 status_code=503,
-                detail="Dịch vụ phản hồi không khả dụng. Vui lòng kiểm tra cấu hình GEMINI_API_KEY."
+                detail="Dịch vụ phản hồi không khả dụng. Vui lòng kiểm tra cấu hình GEMINI_API_KEY.",
             )
-        
+
         return FeedbackResponse(
             fluency_score=float(ielts_feedback.fluency_score),
             vocabulary_score=float(ielts_feedback.vocabulary_score),
             grammar_score=float(ielts_feedback.grammar_score),
-            pronunciation_score=float(ielts_feedback.pronunciation_score) if ielts_feedback.pronunciation_score is not None else None,
+            pronunciation_score=float(ielts_feedback.pronunciation_score)
+            if ielts_feedback.pronunciation_score is not None
+            else None,
             overall_band=float(ielts_feedback.overall_band),
             feedback=format_feedback_text(ielts_feedback),
             strengths=ielts_feedback.strengths,
             improvements=ielts_feedback.improvements,
-            sample_corrections=ielts_feedback.sample_corrections
+            sample_corrections=ielts_feedback.sample_corrections,
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error analyzing transcription: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Không thể tạo phản hồi: {str(e)}"
-        )
-
+        raise HTTPException(status_code=500, detail=f"Không thể tạo phản hồi: {str(e)}")

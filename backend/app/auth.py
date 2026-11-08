@@ -1,29 +1,32 @@
 from datetime import datetime, timedelta
 from typing import Optional
-from jose import JWTError, jwt
+
 import bcrypt
+import httpx
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
-from app.database import get_db
+
 from app import models
 from app.core.config import settings
-import httpx
+from app.database import get_db
 
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
-oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="api/auth/login", auto_error=False)
+oauth2_scheme_optional = OAuth2PasswordBearer(
+    tokenUrl="api/auth/login", auto_error=False
+)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against a bcrypt hash."""
     try:
         return bcrypt.checkpw(
-            plain_password.encode('utf-8'),
-            hashed_password.encode('utf-8')
+            plain_password.encode("utf-8"), hashed_password.encode("utf-8")
         )
     except Exception:
         return False
@@ -32,12 +35,14 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     """Hash a password using bcrypt."""
     # Truncate password to 72 bytes (bcrypt limit)
-    password_bytes = password.encode('utf-8')
+    password_bytes = password.encode("utf-8")
     if len(password_bytes) > 72:
-        raise HTTPException(status_code=422, detail='Password must be at most 72 UTF-8 bytes')
+        raise HTTPException(
+            status_code=422, detail="Password must be at most 72 UTF-8 bytes"
+        )
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(password_bytes, salt)
-    return hashed.decode('utf-8')
+    return hashed.decode("utf-8")
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -68,8 +73,7 @@ def authenticate_user(db: Session, username: str, password: str):
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
 ):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -91,7 +95,7 @@ async def get_current_user(
 
 async def get_current_user_optional(
     token: Optional[str] = Depends(oauth2_scheme_optional),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Optional[models.User]:
     """Get current user if token is provided, otherwise return None"""
     if not token:
@@ -113,7 +117,7 @@ async def verify_google_token(token: str) -> dict:
     if not GOOGLE_CLIENT_ID:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Google OAuth not configured. Please set GOOGLE_CLIENT_ID in your backend .env file. See README.md for setup instructions."
+            detail="Google OAuth not configured. Please set GOOGLE_CLIENT_ID in your backend .env file. See README.md for setup instructions.",
         )
 
     try:
@@ -129,24 +133,24 @@ async def verify_google_token(token: str) -> dict:
             if user_info.get("aud") != settings.GOOGLE_CLIENT_ID:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid token audience"
+                    detail="Invalid token audience",
                 )
 
             return user_info
     except httpx.HTTPStatusError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Failed to verify Google token: HTTP {e.response.status_code}"
+            detail=f"Failed to verify Google token: HTTP {e.response.status_code}",
         )
-    except httpx.RequestError as e:
+    except httpx.RequestError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Failed to connect to Google OAuth service"
+            detail="Failed to connect to Google OAuth service",
         )
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Failed to verify Google token"
+            detail="Failed to verify Google token",
         )
 
 

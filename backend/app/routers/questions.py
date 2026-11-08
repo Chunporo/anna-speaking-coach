@@ -1,8 +1,10 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query, HTTPException
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+
+from app import auth, models, schemas
 from app.database import get_db
-from app import models, schemas, auth
 from app.services import tts_service
 
 router = APIRouter()
@@ -12,7 +14,7 @@ router = APIRouter()
 def get_questions(
     part: Optional[int] = Query(None, ge=1, le=3),
     topic: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     query = db.query(models.Question)
     if part:
@@ -23,7 +25,9 @@ def get_questions(
 
 
 @router.get("/topics", response_model=List[str])
-def get_topics(part: Optional[int] = Query(None, ge=1, le=3), db: Session = Depends(get_db)):
+def get_topics(
+    part: Optional[int] = Query(None, ge=1, le=3), db: Session = Depends(get_db)
+):
     query = db.query(models.Question.topic).distinct()
     if part:
         query = query.filter(models.Question.part == part)
@@ -31,11 +35,10 @@ def get_topics(part: Optional[int] = Query(None, ge=1, le=3), db: Session = Depe
 
 
 @router.get("/{question_id:int}", response_model=schemas.QuestionResponse)
-def get_question(
-    question_id: int,
-    db: Session = Depends(get_db)
-):
-    question = db.query(models.Question).filter(models.Question.id == question_id).first()
+def get_question(question_id: int, db: Session = Depends(get_db)):
+    question = (
+        db.query(models.Question).filter(models.Question.id == question_id).first()
+    )
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
     return question
@@ -45,29 +48,35 @@ def get_question(
 def get_question_audio(
     question_id: int,
     current_user: models.User = Depends(auth.get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Generate or retrieve TTS audio for a question
     """
-    question = db.query(models.Question).filter(models.Question.id == question_id).first()
+    question = (
+        db.query(models.Question).filter(models.Question.id == question_id).first()
+    )
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
-    
+
     try:
         audio_url = tts_service.get_tts_audio_url(question.question_text, question_id)
         return {"audio_url": audio_url}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to generate audio: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to generate audio: {str(e)}"
+        )
 
 
 @router.get("/user-questions", response_model=List[schemas.UserQuestionResponse])
 def get_user_questions(
     part: Optional[int] = Query(None, ge=1, le=3),
     current_user: models.User = Depends(auth.get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    query = db.query(models.UserQuestion).filter(models.UserQuestion.user_id == current_user.id)
+    query = db.query(models.UserQuestion).filter(
+        models.UserQuestion.user_id == current_user.id
+    )
     if part:
         query = query.filter(models.UserQuestion.part == part)
     return query.all()
@@ -77,12 +86,9 @@ def get_user_questions(
 def create_user_question(
     question: schemas.UserQuestionCreate,
     current_user: models.User = Depends(auth.get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    db_question = models.UserQuestion(
-        user_id=current_user.id,
-        **question.model_dump()
-    )
+    db_question = models.UserQuestion(user_id=current_user.id, **question.model_dump())
     db.add(db_question)
     db.commit()
     db.refresh(db_question)
@@ -93,12 +99,16 @@ def create_user_question(
 def delete_user_question(
     question_id: int,
     current_user: models.User = Depends(auth.get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    question = db.query(models.UserQuestion).filter(
-        models.UserQuestion.id == question_id,
-        models.UserQuestion.user_id == current_user.id
-    ).first()
+    question = (
+        db.query(models.UserQuestion)
+        .filter(
+            models.UserQuestion.id == question_id,
+            models.UserQuestion.user_id == current_user.id,
+        )
+        .first()
+    )
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
     db.delete(question)
@@ -106,10 +116,19 @@ def delete_user_question(
     return {"message": "Question deleted"}
 
 
-
-@router.get('/user-questions/{question_id}', response_model=schemas.UserQuestionResponse)
-def get_user_question(question_id: int, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
-    question = db.query(models.UserQuestion).filter_by(id=question_id, user_id=current_user.id).first()
+@router.get(
+    "/user-questions/{question_id}", response_model=schemas.UserQuestionResponse
+)
+def get_user_question(
+    question_id: int,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    question = (
+        db.query(models.UserQuestion)
+        .filter_by(id=question_id, user_id=current_user.id)
+        .first()
+    )
     if not question:
-        raise HTTPException(status_code=404, detail='Question not found')
+        raise HTTPException(status_code=404, detail="Question not found")
     return question

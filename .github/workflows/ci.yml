@@ -34,6 +34,8 @@ jobs:
           python-version: '3.11'
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       - run: pip install -r backend/requirements-dev.txt
+      - run: git ls-files -z backend | grep -z '\.py$' | xargs -0 ruff check
+      - run: git ls-files -z backend | grep -z '\.py$' | xargs -0 ruff format --check
       - run: python backend/tests/run_coverage.py
       - name: Verify nonroot Compose uploads
         env:

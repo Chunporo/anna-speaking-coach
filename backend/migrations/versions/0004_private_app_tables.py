@@ -1,13 +1,23 @@
 """Deny direct Supabase Data API access to backend-owned application tables."""
+
 from alembic import op
 
-revision = '0004'
-down_revision = '0003'
+revision = "0004"
+down_revision = "0003"
 
 TABLES = (
-    'users', 'questions', 'user_questions', 'practice_sessions', 'mock_tests',
-    'mock_test_questions', 'daily_progress', 'streaks', 'activity_calendar',
-    'part_progress', 'ai_request_limits', 'alembic_version',
+    "users",
+    "questions",
+    "user_questions",
+    "practice_sessions",
+    "mock_tests",
+    "mock_test_questions",
+    "daily_progress",
+    "streaks",
+    "activity_calendar",
+    "part_progress",
+    "ai_request_limits",
+    "alembic_version",
 )
 
 
