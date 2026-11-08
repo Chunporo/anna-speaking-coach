@@ -64,20 +64,21 @@ docker compose up -d backend
 The copy preserves existing destination files and does not remove the source.
 Fresh installations need no copy step. Keep the existing database volume.
 
-## Remaining dependency risk
+## Dependency security follow-up
 
-Compatible dependency patches reduced `npm audit --omit=dev` findings from eight
-to two: Next.js is still reported critical and its nested PostCSS high. Resolving
-the remaining advisories requires a major framework migration; the audit proposes
-Next.js 16.4.5. Next.js was patched to 14.2.35 and Axios to 1.21.0 without silently
-forcing that migration. Exploitability depends on platform and enabled features;
-the audit is not evidence that an exploit succeeded.
+The framework upgrade is included in this follow-up. Next.js is now 16.4.5 with
+React 19.3.1; the unused React Query v3 package was removed. The mock-test page
+uses the current route-parameter hook, TypeScript uses Next.js's bundler settings,
+and the custom webpack alias was removed because the existing TypeScript path
+mapping handles it. The frontend production build and all 70 tests pass.
 
-Do not treat a passing Sonar source-code gate as approval for a production
-release while these dependency advisories remain. Plan the major upgrade as a
-separate compatibility-tested change. References:
-[Next.js AVIF advisory](https://github.com/advisories/GHSA-2xp9-vwfh-vxw4),
-[Next.js SVG advisory](https://github.com/advisories/GHSA-2464-fhr4-w9xw).
+ESLint now uses the Next.js flat configuration and runs in CI. Lint exits
+successfully with 13 existing warnings about React Compiler recommendations and
+hook dependencies; there are no lint errors. These warnings remain visible while
+the app does not enable the React Compiler. The full `npm audit` currently reports
+no vulnerabilities, including the development dependency tree. The production-only
+audit is also clean.
 
-Live AI quality, physical microphone/device checks, and provider availability
-are outside this review. No production merge or deployment is implied by it.
+This is dependency and build validation, not a live production deployment. Live
+AI quality, physical microphone/device checks, and provider availability remain
+outside this review. No production merge or deployment is implied by it.

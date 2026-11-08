@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   search: "",
   pathname: "/practice",
+  testId: "3",
 }));
 vi.mock("@/lib/api", () => ({
   default: { get: mocks.get, post: mocks.post, delete: mocks.delete },
@@ -31,7 +32,7 @@ vi.mock("@/lib/api", () => ({
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mocks.push }),
   usePathname: () => mocks.pathname,
-  useParams: () => ({ questionId: "7" }),
+  useParams: () => ({ questionId: "7", testId: mocks.testId }),
   useSearchParams: () => new URLSearchParams(mocks.search),
 }));
 vi.mock("next/link", () => ({
@@ -116,6 +117,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.search = "";
   mocks.pathname = "/practice";
+  mocks.testId = "3";
   mocks.get.mockResolvedValue({ data: [] });
   mocks.post.mockResolvedValue({ data: { id: 42 } });
   mocks.delete.mockResolvedValue({});
@@ -469,7 +471,7 @@ it("mock detail records, pauses, resumes and completes an answer", async () => {
       ],
     });
   mocks.post.mockResolvedValue({ data: session });
-  render(<TestPage params={{ testId: "3" }} />);
+  render(<TestPage />);
   await screen.findByText(question.question_text);
   click("Bắt đầu ghi âm");
   await screen.findByText("Đang ghi âm câu trả lời");
@@ -498,7 +500,7 @@ it("mock detail preserves analyzed audio when attaching fails and retries attach
     if (url.includes("/answers/")) throw new Error("offline");
     return { data: session };
   });
-  render(<TestPage params={{ testId: "3" }} />);
+  render(<TestPage />);
   await screen.findByText(question.question_text);
   click("Bắt đầu ghi âm");
   await screen.findByText("Đang ghi âm câu trả lời");
@@ -521,8 +523,9 @@ it.each([
   { response: { data: { detail: "Missing test" } } },
   new Error("offline"),
 ])("mock detail reports load failure", async (error) => {
+  mocks.testId = "8";
   mocks.get.mockRejectedValue(error);
-  render(<TestPage params={{ testId: "8" }} />);
+  render(<TestPage />);
   await screen.findByText("Chưa thể mở bài thi này");
   expect(screen.getByRole("alert")).toBeInTheDocument();
 });

@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import {
   Mic,
   Square,
@@ -24,17 +25,18 @@ type TestQuestion = {
   question_text: string;
   answered: boolean;
 };
-export default function TestPage({ params }: { params: { testId: string } }) {
+export default function TestPage() {
+  const { testId } = useParams<{ testId: string }>();
   const [questions, setQuestions] = useState<TestQuestion[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
   const recorder = useAudioRecorder();
   const submission = usePracticeSubmission();
   const load = useCallback(async () => {
-    const response = await api.get(`/api/mock-test/${params.testId}/questions`);
+    const response = await api.get(`/api/mock-test/${testId}/questions`);
     setQuestions(response.data);
     setLoaded(true);
-  }, [params.testId]);
+  }, [testId]);
   useEffect(() => {
     load().catch((error) => {
       setLoaded(true);
@@ -49,7 +51,7 @@ export default function TestPage({ params }: { params: { testId: string } }) {
   const saveAnswer = async (session: PracticeSession) => {
     if (!question) return;
     await api.post(
-      `/api/mock-test/${params.testId}/answers/${question.question_id}`,
+      `/api/mock-test/${testId}/answers/${question.question_id}`,
       { session_id: session.id },
     );
     recorder.resetRecording();
@@ -91,7 +93,7 @@ export default function TestPage({ params }: { params: { testId: string } }) {
       <main id="main-content" className="app-main">
         <div className="page-wrap">
           <PageHeader
-            eyebrow={`Thi thử · #${params.testId}`}
+            eyebrow={`Thi thử · #${testId}`}
             title="Tập trung vào câu trả lời của bạn."
             description="Không cần vội. Bạn có thể nghe lại bản ghi trước khi tiếp tục."
             action={

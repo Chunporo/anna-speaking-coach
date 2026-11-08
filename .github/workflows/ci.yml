@@ -63,6 +63,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci --ignore-scripts --include=optional
       - run: node --test tests/*.test.cjs
+      - run: npm run lint
       - run: npm run test:coverage
       - run: npm run build
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
