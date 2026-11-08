@@ -21,8 +21,10 @@ Measured locally:
 The frontend production build also passes on Node 22. Python XML and frontend LCOV
 reports use repository-relative paths. CI uploads reports from the successful
 test jobs and downloads them in the dependent Sonar job from the same workflow
-run. The existing 80% new-code coverage threshold is unchanged. Cloud quality-gate
-results must be checked on the follow-up PR's exact commit.
+run. The existing 80% new-code coverage threshold is unchanged. On commit
+`dcb77b8`, GitHub Actions and SonarCloud passed: the new-code quality gate reports
+95.0% coverage, 0% duplication, A ratings for reliability/security/maintainability,
+and 100% reviewed security hotspots.
 
 ## Findings addressed
 
