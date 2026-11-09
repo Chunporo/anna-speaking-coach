@@ -1,4 +1,4 @@
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm ci --ignore-scripts --include=optional
 
 # Copy source code
 COPY . .
@@ -22,7 +22,7 @@ ENV DOCKER_BUILD=true
 RUN npm run build
 
 # Production stage - using standalone output
-FROM node:18-alpine AS runner
+FROM node:22-alpine AS runner
 
 WORKDIR /app
 

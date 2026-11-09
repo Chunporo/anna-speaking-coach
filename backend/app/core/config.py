@@ -2,9 +2,11 @@
 Application configuration module
 Centralizes all configuration settings from environment variables
 """
+
 import os
 from pathlib import Path
 from typing import List
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,15 +20,29 @@ class Settings:
             raise ValueError("AUDIO_STORAGE must be local or supabase")
         if self.AUDIO_STORAGE == "supabase":
             from urllib.parse import urlsplit
+
             url = urlsplit(self.SUPABASE_URL)
-            if (url.scheme != "https" or not url.hostname or url.username
-                    or url.password or url.path not in {"", "/"} or url.query or url.fragment):
+            if (
+                url.scheme != "https"
+                or not url.hostname
+                or url.username
+                or url.password
+                or url.path not in {"", "/"}
+                or url.query
+                or url.fragment
+            ):
                 raise ValueError("SUPABASE_URL must be an HTTPS project origin")
             if not self.SUPABASE_SERVICE_ROLE_KEY or not self.SUPABASE_AUDIO_BUCKET:
-                raise ValueError("Supabase audio storage requires a server key and private bucket")
+                raise ValueError(
+                    "Supabase audio storage requires a server key and private bucket"
+                )
         if self.is_production:
-            if len(self.SECRET_KEY) < 32 or self.SECRET_KEY.startswith(("your-", "change-")):
-                raise ValueError("Production requires a random SECRET_KEY of at least 32 characters")
+            if len(self.SECRET_KEY) < 32 or self.SECRET_KEY.startswith(
+                ("your-", "change-")
+            ):
+                raise ValueError(
+                    "Production requires a random SECRET_KEY of at least 32 characters"
+                )
             if not self.allowed_origins or "*" in self.allowed_origins:
                 raise ValueError("Production requires explicit ALLOWED_ORIGINS")
 
@@ -37,8 +53,7 @@ class Settings:
 
     # Database
     DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        "postgresql://user:password@localhost:5432/ielts_speaking"
+        "DATABASE_URL", "postgresql://user:password@localhost:5432/ielts_speaking"
     )
 
     # Security
@@ -64,7 +79,9 @@ class Settings:
 
     # AI Services
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GOOGLE_APPLICATION_CREDENTIALS: str = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "")
+    GOOGLE_APPLICATION_CREDENTIALS: str = os.getenv(
+        "GOOGLE_APPLICATION_CREDENTIALS", ""
+    )
 
     # Transcription
     DEFAULT_LANGUAGE_CODE: str = "en-US"
@@ -75,7 +92,11 @@ class Settings:
         """Get list of allowed CORS origins"""
         if self.ENVIRONMENT == "development" and self.CORS_ALLOW_ALL:
             return ["*"]
-        return [origin.strip() for origin in self.ALLOWED_ORIGINS_STR.split(",") if origin.strip()]
+        return [
+            origin.strip()
+            for origin in self.ALLOWED_ORIGINS_STR.split(",")
+            if origin.strip()
+        ]
 
     @property
     def allow_credentials(self) -> bool:
@@ -97,6 +118,3 @@ class Settings:
 
 # Global settings instance
 settings = Settings()
-
-
-

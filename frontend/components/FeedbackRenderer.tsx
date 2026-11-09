@@ -22,11 +22,11 @@ export default function FeedbackRenderer({ feedback }: FeedbackRendererProps) {
   }[] = [];
 
   // Split by section headers
-  const overallMatch = feedback.match(/## 📊 Tổng thể([\s\S]*?)(?=##|$)/);
-  const strengthsMatch = feedback.match(/## ✅ Điểm mạnh([\s\S]*?)(?=##|$)/);
-  const improvementsMatch = feedback.match(/## 🎯 Những điểm cần cải thiện([\s\S]*?)(?=##|$)/);
-  const transcriptMatch = feedback.match(/## 📝 Bản ghi sửa lỗi([\s\S]*?)(?=##|$)/);
-  const suggestionsMatch = feedback.match(/## 💡 Gợi ý cải thiện([\s\S]*?)(?=##|$)/);
+  const overallMatch = feedback.match(/## 📊 Tổng thể([\s\S]*?)(?=\r?\n##[ \t]+|$)/);
+  const strengthsMatch = feedback.match(/## ✅ Điểm mạnh([\s\S]*?)(?=\r?\n##[ \t]+|$)/);
+  const improvementsMatch = feedback.match(/## 🎯 Những điểm cần cải thiện([\s\S]*?)(?=\r?\n##[ \t]+|$)/);
+  const transcriptMatch = feedback.match(/## 📝 Bản ghi sửa lỗi([\s\S]*?)(?=\r?\n##[ \t]+|$)/);
+  const suggestionsMatch = feedback.match(/## 💡 Gợi ý cải thiện([\s\S]*?)(?=\r?\n##[ \t]+|$)/);
 
   if (overallMatch) {
     sections.push({

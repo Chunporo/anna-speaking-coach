@@ -1,7 +1,6 @@
 """
 Application constants
 """
-from decimal import Decimal
 
 # IELTS Parts
 IELTS_PARTS = [1, 2, 3]
@@ -42,6 +41,3 @@ FEEDBACK_ERROR_TEMPLATE = """⚠️ **Lỗi tạo phản hồi**
 Đã xảy ra lỗi khi tạo phản hồi: {error}
 
 Bản ghi của bạn đã được lưu. Vui lòng thử lại sau."""
-
-
-

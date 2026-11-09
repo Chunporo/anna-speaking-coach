@@ -1,9 +1,12 @@
 """
 Custom middleware for the application
 """
+
 import logging
+
 from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -22,7 +25,9 @@ def setup_cors_middleware(app):
     )
 
     if settings.is_development and settings.CORS_ALLOW_ALL:
-        logger.warning("CORS: Allowing all origins in development mode (allow_credentials will be False)")
+        logger.warning(
+            "CORS: Allowing all origins in development mode (allow_credentials will be False)"
+        )
     else:
         logger.info(f"CORS: Allowing origins: {settings.allowed_origins}")
 

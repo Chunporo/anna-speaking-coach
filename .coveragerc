@@ -1,0 +1,17 @@
+[run]
+branch = True
+relative_files = True
+source = backend
+omit =
+    backend/.venv/*
+    backend/venv/*
+    backend/tests/*
+    backend/test_*.py
+    backend/database/test_db.py
+
+[report]
+include_namespace_packages = True
+show_missing = True
+
+[xml]
+output = coverage.xml

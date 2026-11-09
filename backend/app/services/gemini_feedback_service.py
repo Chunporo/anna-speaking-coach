@@ -2,28 +2,33 @@
 Gemini-based IELTS Speaking Feedback Service
 Provides professional IELTS examiner-style evaluation and feedback
 """
-import os
+
 import json
 import logging
+import os
 import re
-from typing import Optional
 from dataclasses import dataclass
 from decimal import Decimal
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 # Try to import google generative AI
 try:
     import google.generativeai as genai
+
     GEMINI_AVAILABLE = True
 except ImportError:
     GEMINI_AVAILABLE = False
-    logger.warning("google-generativeai not installed. Gemini feedback will be unavailable.")
+    logger.warning(
+        "google-generativeai not installed. Gemini feedback will be unavailable."
+    )
 
 
 @dataclass
 class IELTSFeedback:
     """IELTS Speaking feedback result"""
+
     fluency_score: Decimal
     vocabulary_score: Decimal
     grammar_score: Decimal
@@ -115,30 +120,30 @@ def get_gemini_client():
     """Initialize and return Gemini client"""
     if not GEMINI_AVAILABLE:
         return None
-    
+
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         logger.warning("GEMINI_API_KEY not set in environment")
         return None
-    
+
     genai.configure(api_key=api_key)
-    return genai.GenerativeModel('gemini-2.5-flash')
+    return genai.GenerativeModel("gemini-2.5-flash")
 
 
 def parse_gemini_response(response_text: str) -> dict:
     """Parse Gemini response to extract JSON"""
     # Try to find JSON in the response
-    json_match = re.search(r'```json\s*(.*?)\s*```', response_text, re.DOTALL)
+    json_match = re.search(r"```json\s*(.*?)\s*```", response_text, re.DOTALL)
     if json_match:
         json_str = json_match.group(1)
     else:
         # Try to parse the entire response as JSON
         json_str = response_text.strip()
         # Remove any markdown code block markers
-        if json_str.startswith('```'):
-            json_str = re.sub(r'^```\w*\n?', '', json_str)
-            json_str = re.sub(r'\n?```$', '', json_str)
-    
+        if json_str.startswith("```"):
+            json_str = re.sub(r"^```\w*\n?", "", json_str)
+            json_str = re.sub(r"\n?```$", "", json_str)
+
     try:
         return json.loads(json_str)
     except json.JSONDecodeError as e:
@@ -152,24 +157,22 @@ def get_part_description(part: int) -> str:
     descriptions = {
         1: "Part 1 (Introduction and Interview) - Short, direct questions about familiar topics",
         2: "Part 2 (Long Turn) - 1-2 minute monologue on a given topic",
-        3: "Part 3 (Discussion) - Abstract discussion questions related to Part 2 topic"
+        3: "Part 3 (Discussion) - Abstract discussion questions related to Part 2 topic",
     }
     return descriptions.get(part, f"Part {part}")
 
 
 async def get_ielts_feedback(
-    transcription: str,
-    question: str,
-    part: int = 1
+    transcription: str, question: str, part: int = 1
 ) -> Optional[IELTSFeedback]:
     """
     Get IELTS examiner-style feedback for a speaking response
-    
+
     Args:
         transcription: The transcribed text of the candidate's response
         question: The question or topic that was asked
         part: IELTS Speaking part (1, 2, or 3)
-        
+
     Returns:
         IELTSFeedback object with scores and detailed feedback, or None if unavailable
     """
@@ -177,7 +180,7 @@ async def get_ielts_feedback(
     if not model:
         logger.warning("Gemini client not available, returning None")
         return None
-    
+
     # Handle empty or very short transcriptions
     if not transcription or len(transcription.strip()) < 10:
         return IELTSFeedback(
@@ -191,51 +194,63 @@ async def get_ielts_feedback(
             improvements=[
                 "Cung cấp câu trả lời dài hơn",
                 "Nói rõ ràng vào microphone",
-                "Trả lời trực tiếp vào câu hỏi"
+                "Trả lời trực tiếp vào câu hỏi",
             ],
-            sample_corrections=[]
+            sample_corrections=[],
         )
-    
+
     # Format the prompt
     part_description = get_part_description(part)
     prompt = IELTS_EXAMINER_PROMPT.format(
-        part=part_description,
-        question=question,
-        transcription=transcription
+        part=part_description, question=question, transcription=transcription
     )
-    
+
     try:
         # Generate response using Gemini
         import asyncio
-        response = await asyncio.to_thread(model.generate_content, prompt, request_options={"timeout": 60})
+
+        response = await asyncio.to_thread(
+            model.generate_content, prompt, request_options={"timeout": 60}
+        )
         response_text = response.text
-        
+
         # Parse the JSON response
         feedback_data = parse_gemini_response(response_text)
-        
-        fields = ['fluency_score', 'vocabulary_score', 'grammar_score']
+
+        fields = ["fluency_score", "vocabulary_score", "grammar_score"]
         for field in fields:
             value = Decimal(str(feedback_data[field]))
-            if not value.is_finite() or not 0 <= value <= 9 or value * 2 != int(value * 2):
-                raise ValueError('Invalid IELTS score')
-        for field in ['strengths', 'improvements']:
-            if not isinstance(feedback_data.get(field), list) or not all(isinstance(item, str) for item in feedback_data[field]):
-                raise ValueError('Invalid feedback list')
-        if not isinstance(feedback_data.get('sample_corrections'), list) or not all(isinstance(item, dict) for item in feedback_data['sample_corrections']):
-            raise ValueError('Invalid corrections')
+            if (
+                not value.is_finite()
+                or not 0 <= value <= 9
+                or value * 2 != int(value * 2)
+            ):
+                raise ValueError("Invalid IELTS score")
+        for field in ["strengths", "improvements"]:
+            if not isinstance(feedback_data.get(field), list) or not all(
+                isinstance(item, str) for item in feedback_data[field]
+            ):
+                raise ValueError("Invalid feedback list")
+        if not isinstance(feedback_data.get("sample_corrections"), list) or not all(
+            isinstance(item, dict) for item in feedback_data["sample_corrections"]
+        ):
+            raise ValueError("Invalid corrections")
         # Create IELTSFeedback object
         return IELTSFeedback(
             fluency_score=Decimal(str(feedback_data.get("fluency_score", 5.0))),
             vocabulary_score=Decimal(str(feedback_data.get("vocabulary_score", 5.0))),
             grammar_score=Decimal(str(feedback_data.get("grammar_score", 5.0))),
             pronunciation_score=None,
-            overall_band=(sum(Decimal(str(feedback_data[field])) for field in fields) / 3 * 2).quantize(Decimal("1")) / 2,
+            overall_band=(
+                sum(Decimal(str(feedback_data[field])) for field in fields) / 3 * 2
+            ).quantize(Decimal("1"))
+            / 2,
             feedback=feedback_data.get("feedback", ""),
             strengths=feedback_data.get("strengths", []),
             improvements=feedback_data.get("improvements", []),
-            sample_corrections=feedback_data.get("sample_corrections", [])
+            sample_corrections=feedback_data.get("sample_corrections", []),
         )
-        
+
     except Exception as e:
         logger.error(f"Error getting Gemini feedback: {e}")
         return None
@@ -244,46 +259,50 @@ async def get_ielts_feedback(
 def format_feedback_text(feedback: IELTSFeedback) -> str:
     """Format IELTSFeedback into a readable text format for storage (Vietnamese)"""
     sections = []
-    
+
     # Tổng thể (Overall)
-    sections.append(f"## 📊 Tổng thể\n")
-    sections.append(f"**Ước tính từ văn bản (không gồm phát âm): {feedback.overall_band}**\n")
+    sections.append("## 📊 Tổng thể\n")
+    sections.append(
+        f"**Ước tính từ văn bản (không gồm phát âm): {feedback.overall_band}**\n"
+    )
     sections.append("### Điểm theo tiêu chí")
     sections.append(f"- **Độ trôi chảy và Mạch lạc (FC)**: {feedback.fluency_score}")
     sections.append(f"- **Vốn từ vựng (LR)**: {feedback.vocabulary_score}")
     sections.append(f"- **Ngữ pháp (GRA)**: {feedback.grammar_score}")
-    sections.append("- **Phát âm (P)**: Cần phân tích âm thanh; không chấm điểm từ bản ghi văn bản.")
+    sections.append(
+        "- **Phát âm (P)**: Cần phân tích âm thanh; không chấm điểm từ bản ghi văn bản."
+    )
     sections.append("")
-    
+
     # Main feedback - Tổng thể
     sections.append("### Nhận xét chi tiết")
     sections.append(feedback.feedback)
     sections.append("")
-    
+
     # Điểm mạnh (Strengths)
     if feedback.strengths:
         sections.append("## ✅ Điểm mạnh")
         for strength in feedback.strengths:
             sections.append(f"- {strength}")
         sections.append("")
-    
+
     # Những điểm cần cải thiện (Areas to improve)
     if feedback.improvements:
         sections.append("## 🎯 Những điểm cần cải thiện")
         for improvement in feedback.improvements:
             sections.append(f"- {improvement}")
         sections.append("")
-    
+
     # Bản ghi - Sample corrections (Transcript corrections)
     if feedback.sample_corrections:
         sections.append("## 📝 Bản ghi sửa lỗi")
         for correction in feedback.sample_corrections:
             if isinstance(correction, dict):
-                sections.append(f"- ❌ \"{correction.get('original', '')}\"")
-                sections.append(f"  ✓ \"{correction.get('corrected', '')}\"")
+                sections.append(f'- ❌ "{correction.get("original", "")}"')
+                sections.append(f'  ✓ "{correction.get("corrected", "")}"')
                 sections.append(f"  💡 {correction.get('explanation', '')}")
                 sections.append("")
-    
+
     # Cải thiện (Improvement suggestions)
     sections.append("## 💡 Gợi ý cải thiện")
     if feedback.improvements:
@@ -293,28 +312,29 @@ def format_feedback_text(feedback: IELTSFeedback) -> str:
     else:
         sections.append("Tiếp tục luyện tập và duy trì phong độ hiện tại!")
     sections.append("")
-    
+
     return "\n".join(sections)
 
 
 # Synchronous wrapper for non-async contexts
 def get_ielts_feedback_sync(
-    transcription: str,
-    question: str,
-    part: int = 1
+    transcription: str, question: str, part: int = 1
 ) -> Optional[IELTSFeedback]:
     """Synchronous version of get_ielts_feedback"""
     import asyncio
-    
+
     try:
         loop = asyncio.get_event_loop()
         if loop.is_running():
             # If we're already in an async context, we can't use run_until_complete
             # In this case, the caller should use the async version
-            logger.warning("Cannot run sync feedback in async context, use async version")
+            logger.warning(
+                "Cannot run sync feedback in async context, use async version"
+            )
             return None
-        return loop.run_until_complete(get_ielts_feedback(transcription, question, part))
+        return loop.run_until_complete(
+            get_ielts_feedback(transcription, question, part)
+        )
     except RuntimeError:
         # No event loop, create a new one
         return asyncio.run(get_ielts_feedback(transcription, question, part))
-

@@ -1,5 +1,14 @@
 name: Checks
-on: [push, pull_request]
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   backend:
     runs-on: ubuntu-latest
@@ -24,10 +33,24 @@ jobs:
         with:
           python-version: '3.11'
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
-      - run: pip install -r backend/requirements.txt
-      - run: python backend/database/init_db.py --seed
-      - run: python backend/database/init_db.py
-      - run: python -m unittest discover -s backend/tests -v
+      - run: pip install -r backend/requirements-dev.txt
+      - run: git ls-files -z backend | grep -z '\.py$' | xargs -0 ruff check
+      - run: git ls-files -z backend | grep -z '\.py$' | xargs -0 ruff format --check
+      - run: python backend/tests/run_coverage.py
+      - name: Verify nonroot Compose uploads
+        env:
+          SECRET_KEY: ci-only-compose-volume-validation-signing-key
+        run: |
+          docker compose --project-name ci-volume --env-file /dev/null build backend
+          docker compose --project-name ci-volume --env-file /dev/null run --rm --no-deps --entrypoint sh backend -c 'test "$(id -u)" -ne 0 && touch uploads/audio/.write-check uploads/tts/.write-check'
+          docker compose --project-name ci-volume --env-file /dev/null run --rm --no-deps --entrypoint sh backend -c 'test -f uploads/audio/.write-check && test -f uploads/tts/.write-check && rm uploads/audio/.write-check uploads/tts/.write-check'
+          docker compose --project-name ci-volume --env-file /dev/null down --volumes
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: backend-coverage
+          path: coverage.xml
+          if-no-files-found: error
+          retention-days: 7
   frontend:
     runs-on: ubuntu-latest
     defaults:
@@ -40,6 +63,43 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
+      - run: npm ci --ignore-scripts --include=optional
       - run: node --test tests/*.test.cjs
+      - run: npm run lint
+      - run: npm run test:coverage
       - run: npm run build
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/lcov.info
+          if-no-files-found: error
+          retention-days: 7
+  sonar:
+    name: Analyze and check quality gate
+    needs: [backend, frontend]
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: backend-coverage
+          path: .
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+      - name: Verify coverage reports
+        run: test -s coverage.xml && test -s frontend/coverage/lcov.info
+      - name: Scan and wait for quality gate
+        uses: SonarSource/sonarqube-scan-action@4d1dc0c91ee400dcf8a6dddf2f705ac36542e304
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        with:
+          args: >-
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=300

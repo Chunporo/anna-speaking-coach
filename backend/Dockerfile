@@ -8,16 +8,28 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
-COPY requirements.txt .
+COPY requirements.lock .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --only-binary=:all: --require-hashes -r requirements.lock
 
 # Copy application code
-COPY . .
+COPY app/*.py ./app/
+COPY app/core/*.py ./app/core/
+COPY app/routers/*.py ./app/routers/
+COPY app/services/*.py ./app/services/
+COPY app/utils/*.py ./app/utils/
+COPY database/init_db.py database/cleanup_audio.py database/schema.sql database/seed_data.sql ./database/
+COPY migrations/env.py migrations/baseline.sql ./migrations/
+COPY migrations/versions/*.py ./migrations/versions/
+COPY alembic.ini start-render.sh ./
 
 # Create uploads directory
-RUN mkdir -p uploads/audio uploads/tts
+RUN groupadd --system app && useradd --system --gid app app \
+    && mkdir -p uploads/audio uploads/tts \
+    && chown -R app:app uploads
+
+USER app
 
 # Expose port
 EXPOSE 8000

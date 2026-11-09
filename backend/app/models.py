@@ -1,6 +1,18 @@
-from sqlalchemy import Column, Integer, String, Boolean, Text, DECIMAL, Date, ForeignKey, TIMESTAMP, CheckConstraint, UniqueConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy import (
+    DECIMAL,
+    TIMESTAMP,
+    Boolean,
+    CheckConstraint,
+    Column,
+    Date,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.sql import func
+
 from app.database import Base
 
 
@@ -11,7 +23,9 @@ class User(Base):
     username = Column(String(50), unique=True, index=True, nullable=False)
     email = Column(String(100), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=True)  # Optional for OAuth users
-    google_id = Column(String(255), unique=True, index=True, nullable=True)  # Google OAuth ID
+    google_id = Column(
+        String(255), unique=True, index=True, nullable=True
+    )  # Google OAuth ID
     is_premium = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
@@ -26,9 +40,7 @@ class Question(Base):
     question_text = Column(Text, nullable=False)
     created_at = Column(TIMESTAMP, server_default=func.now())
 
-    __table_args__ = (
-        CheckConstraint('part IN (1, 2, 3)', name='check_part'),
-    )
+    __table_args__ = (CheckConstraint("part IN (1, 2, 3)", name="check_part"),)
 
 
 class UserQuestion(Base):
@@ -42,7 +54,7 @@ class UserQuestion(Base):
     created_at = Column(TIMESTAMP, server_default=func.now())
 
     __table_args__ = (
-        CheckConstraint('part IN (1, 2, 3)', name='check_user_question_part'),
+        CheckConstraint("part IN (1, 2, 3)", name="check_user_question_part"),
     )
 
 
@@ -51,8 +63,12 @@ class PracticeSession(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    question_id = Column(Integer, ForeignKey("questions.id", ondelete="SET NULL"), nullable=True)
-    user_question_id = Column(Integer, ForeignKey("user_questions.id", ondelete="SET NULL"), nullable=True)
+    question_id = Column(
+        Integer, ForeignKey("questions.id", ondelete="SET NULL"), nullable=True
+    )
+    user_question_id = Column(
+        Integer, ForeignKey("user_questions.id", ondelete="SET NULL"), nullable=True
+    )
     part = Column(Integer, nullable=False)
     audio_url = Column(Text)
     transcription = Column(Text)
@@ -67,9 +83,7 @@ class PracticeSession(Base):
     feedback_corrections = Column(Text)  # JSON array of corrections
     created_at = Column(TIMESTAMP, server_default=func.now(), index=True)
 
-    __table_args__ = (
-        CheckConstraint('part IN (1, 2, 3)', name='check_practice_part'),
-    )
+    __table_args__ = (CheckConstraint("part IN (1, 2, 3)", name="check_practice_part"),)
 
 
 class MockTest(Base):
@@ -86,7 +100,9 @@ class MockTest(Base):
     created_at = Column(TIMESTAMP, server_default=func.now())
 
     __table_args__ = (
-        CheckConstraint("test_type IN ('PART1', 'PART2', 'PART3', 'FULL')", name='check_test_type'),
+        CheckConstraint(
+            "test_type IN ('PART1', 'PART2', 'PART3', 'FULL')", name="check_test_type"
+        ),
     )
 
 
@@ -95,15 +111,19 @@ class MockTestQuestion(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     mock_test_id = Column(Integer, ForeignKey("mock_tests.id", ondelete="CASCADE"))
-    question_id = Column(Integer, ForeignKey("questions.id", ondelete="SET NULL"), nullable=True)
-    user_question_id = Column(Integer, ForeignKey("user_questions.id", ondelete="SET NULL"), nullable=True)
+    question_id = Column(
+        Integer, ForeignKey("questions.id", ondelete="SET NULL"), nullable=True
+    )
+    user_question_id = Column(
+        Integer, ForeignKey("user_questions.id", ondelete="SET NULL"), nullable=True
+    )
     part = Column(Integer, nullable=False)
     audio_url = Column(Text)
     transcription = Column(Text)
     order_index = Column(Integer, nullable=False)
 
     __table_args__ = (
-        CheckConstraint('part IN (1, 2, 3)', name='check_mock_test_question_part'),
+        CheckConstraint("part IN (1, 2, 3)", name="check_mock_test_question_part"),
     )
 
 
@@ -159,18 +179,23 @@ class PartProgress(Base):
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
     __table_args__ = (
-        CheckConstraint('part IN (1, 2, 3)', name='check_part_progress_part'),
-        UniqueConstraint('user_id', 'part'),
-        {'sqlite_autoincrement': True},
+        CheckConstraint("part IN (1, 2, 3)", name="check_part_progress_part"),
+        UniqueConstraint("user_id", "part"),
+        {"sqlite_autoincrement": True},
     )
 
 
-
 class AIRequestLimit(Base):
-    __tablename__ = 'ai_request_limits'
+    __tablename__ = "ai_request_limits"
 
-    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
-    window_started = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
-    request_count = Column(Integer, nullable=False, server_default='1')
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    window_started = Column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
+    )
+    request_count = Column(Integer, nullable=False, server_default="1")
 
-    __table_args__ = (CheckConstraint('request_count > 0', name='check_ai_request_count'),)
+    __table_args__ = (
+        CheckConstraint("request_count > 0", name="check_ai_request_count"),
+    )

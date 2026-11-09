@@ -162,7 +162,10 @@ export default function QuestionPracticePage() {
         setIsPlaying(false);
         setAudioError('Failed to play recording');
       };
-      audio.play();
+      audio.play().catch(() => {
+        setIsPlaying(false);
+        setAudioError('Failed to play recording');
+      });
       setIsPlaying(true);
     }
   };
